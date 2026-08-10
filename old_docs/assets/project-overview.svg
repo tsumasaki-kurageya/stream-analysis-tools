@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">長時間の複数配信から切り抜き候補を見つける</title>
+  <desc id="desc">左に複数の長時間配信、中央にデータ収集と探索、右に切り抜き候補が描かれている。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#edf5ff"/><stop offset="1" stop-color="#f5fbff"/></linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#0891b2"/></linearGradient>
+    <linearGradient id="violet" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#2563eb"/></linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#173153" flood-opacity=".13"/></filter>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="35"/></filter>
+  </defs>
+
+  <rect x="12" y="12" width="1176" height="736" rx="50" fill="url(#bg)"/>
+  <circle cx="640" cy="370" r="230" fill="#dcecff" opacity=".7" filter="url(#soft)"/>
+
+  <g transform="translate(62 112)" filter="url(#shadow)">
+    <rect width="300" height="510" rx="34" fill="#fff"/>
+    <text x="30" y="48" fill="#142033" font-family="sans-serif" font-size="21" font-weight="700">複数の配信アーカイブ</text>
+    <text x="30" y="78" fill="#6b7890" font-family="sans-serif" font-size="14">1本 6〜9時間 × 複数視点</text>
+
+    <g transform="translate(28 112)">
+      <g transform="translate(0 0)">
+        <rect width="244" height="92" rx="18" fill="#f5f8fc" stroke="#dce3ec"/>
+        <rect x="14" y="14" width="94" height="64" rx="12" fill="#173251"/>
+        <circle cx="61" cy="46" r="16" fill="#fff" opacity=".95"/><path d="M57 37 70 46 57 55Z" fill="#2563eb"/>
+        <text x="124" y="35" fill="#142033" font-family="sans-serif" font-size="15" font-weight="700">配信者 A</text>
+        <rect x="124" y="49" width="94" height="8" rx="4" fill="#d8e1ec"/>
+        <rect x="124" y="64" width="61" height="7" rx="4" fill="#e7ecf3"/>
+        <rect x="186" y="14" width="42" height="22" rx="11" fill="#fff0d6"/><text x="207" y="29" text-anchor="middle" fill="#a86700" font-family="sans-serif" font-size="11" font-weight="700">8:42</text>
+      </g>
+      <g transform="translate(0 106)">
+        <rect width="244" height="92" rx="18" fill="#f5f8fc" stroke="#dce3ec"/>
+        <rect x="14" y="14" width="94" height="64" rx="12" fill="#21324a"/>
+        <circle cx="61" cy="46" r="16" fill="#fff" opacity=".95"/><path d="M57 37 70 46 57 55Z" fill="#0891b2"/>
+        <text x="124" y="35" fill="#142033" font-family="sans-serif" font-size="15" font-weight="700">配信者 B</text>
+        <rect x="124" y="49" width="94" height="8" rx="4" fill="#d8e1ec"/>
+        <rect x="124" y="64" width="72" height="7" rx="4" fill="#e7ecf3"/>
+        <rect x="186" y="14" width="42" height="22" rx="11" fill="#e5f7fb"/><text x="207" y="29" text-anchor="middle" fill="#087b96" font-family="sans-serif" font-size="11" font-weight="700">7:16</text>
+      </g>
+      <g transform="translate(0 212)">
+        <rect width="244" height="92" rx="18" fill="#f5f8fc" stroke="#dce3ec"/>
+        <rect x="14" y="14" width="94" height="64" rx="12" fill="#2d2945"/>
+        <circle cx="61" cy="46" r="16" fill="#fff" opacity=".95"/><path d="M57 37 70 46 57 55Z" fill="#7c3aed"/>
+        <text x="124" y="35" fill="#142033" font-family="sans-serif" font-size="15" font-weight="700">配信者 C</text>
+        <rect x="124" y="49" width="94" height="8" rx="4" fill="#d8e1ec"/>
+        <rect x="124" y="64" width="52" height="7" rx="4" fill="#e7ecf3"/>
+        <rect x="186" y="14" width="42" height="22" rx="11" fill="#eee8ff"/><text x="207" y="29" text-anchor="middle" fill="#6640c8" font-family="sans-serif" font-size="11" font-weight="700">6:58</text>
+      </g>
+    </g>
+    <g transform="translate(28 442)">
+      <circle cx="18" cy="18" r="18" fill="#edf2f8"/><text x="18" y="24" text-anchor="middle" fill="#657085" font-family="sans-serif" font-size="18" font-weight="700">+</text>
+      <text x="50" y="23" fill="#657085" font-family="sans-serif" font-size="14" font-weight="700">さらに複数の視点</text>
+    </g>
+  </g>
+
+  <g transform="translate(470 190)">
+    <path d="M-65 186 C-25 186 -30 118 20 118" fill="none" stroke="#b5c9e6" stroke-width="8" stroke-linecap="round"/>
+    <path d="M-65 250 C-18 250 -30 290 20 290" fill="none" stroke="#b5c9e6" stroke-width="8" stroke-linecap="round"/>
+    <path d="M-65 314 C-15 314 -20 206 20 206" fill="none" stroke="#b5c9e6" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="180" cy="220" r="176" fill="#fff" filter="url(#shadow)"/>
+    <circle cx="180" cy="220" r="147" fill="url(#blue)"/>
+    <circle cx="180" cy="220" r="115" fill="#fff"/>
+    <circle cx="160" cy="199" r="52" fill="none" stroke="#2563eb" stroke-width="16"/>
+    <path d="M199 238 250 289" stroke="#2563eb" stroke-width="18" stroke-linecap="round"/>
+    <g transform="translate(112 126)">
+      <rect x="0" y="0" width="92" height="12" rx="6" fill="#dce8fa"/>
+      <rect x="16" y="25" width="111" height="12" rx="6" fill="#c5d8f4"/>
+      <rect x="-4" y="50" width="74" height="12" rx="6" fill="#dce8fa"/>
+    </g>
+    <rect x="93" y="338" width="174" height="48" rx="24" fill="#102a43"/>
+    <text x="180" y="369" text-anchor="middle" fill="#fff" font-family="sans-serif" font-size="17" font-weight="700">収集・同期・探索</text>
+  </g>
+
+  <g transform="translate(885 118)" filter="url(#shadow)">
+    <rect width="250" height="528" rx="34" fill="#fff"/>
+    <text x="28" y="48" fill="#142033" font-family="sans-serif" font-size="21" font-weight="700">見るべき候補へ</text>
+    <text x="28" y="78" fill="#6b7890" font-family="sans-serif" font-size="14">前後と別視点をすぐ確認</text>
+
+    <g transform="translate(26 112)">
+      <rect width="198" height="116" rx="20" fill="#eff5ff" stroke="#c8daf9"/>
+      <rect x="16" y="16" width="85" height="56" rx="10" fill="url(#blue)"/>
+      <circle cx="58" cy="44" r="15" fill="#fff" opacity=".95"/><path d="M54 36 66 44 54 52Z" fill="#2563eb"/>
+      <text x="116" y="38" fill="#2563eb" font-family="sans-serif" font-size="12" font-weight="700">02:14:08</text>
+      <text x="116" y="58" fill="#142033" font-family="sans-serif" font-size="13" font-weight="700">掛け合い</text>
+      <rect x="16" y="88" width="166" height="7" rx="4" fill="#d1def3"/>
+      <rect x="16" y="88" width="108" height="7" rx="4" fill="#2563eb"/>
+    </g>
+    <g transform="translate(26 248)">
+      <rect width="198" height="116" rx="20" fill="#f2edff" stroke="#d9cef9"/>
+      <rect x="16" y="16" width="85" height="56" rx="10" fill="url(#violet)"/>
+      <circle cx="58" cy="44" r="15" fill="#fff" opacity=".95"/><path d="M54 36 66 44 54 52Z" fill="#7c3aed"/>
+      <text x="116" y="38" fill="#7c3aed" font-family="sans-serif" font-size="12" font-weight="700">04:38:21</text>
+      <text x="116" y="58" fill="#142033" font-family="sans-serif" font-size="13" font-weight="700">伏線回収</text>
+      <rect x="16" y="88" width="166" height="7" rx="4" fill="#ded5f6"/>
+      <rect x="16" y="88" width="137" height="7" rx="4" fill="#7c3aed"/>
+    </g>
+    <g transform="translate(26 384)">
+      <rect width="198" height="88" rx="20" fill="#eaf8f2" stroke="#ccebdd"/>
+      <circle cx="42" cy="44" r="22" fill="#169c68"/>
+      <path d="M33 44 40 51 53 35" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="76" y="39" fill="#142033" font-family="sans-serif" font-size="14" font-weight="700">切り抜き候補</text>
+      <text x="76" y="60" fill="#5b6d61" font-family="sans-serif" font-size="12">採用判断へ</text>
+    </g>
+  </g>
+
+  <path d="M824 380h42" stroke="#2563eb" stroke-width="10" stroke-linecap="round"/>
+  <path d="m858 363 23 17-23 17" fill="none" stroke="#2563eb" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

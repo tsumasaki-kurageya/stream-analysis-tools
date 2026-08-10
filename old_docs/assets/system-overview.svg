@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 850" role="img" aria-labelledby="title desc">
+  <title id="title">YouTube Stream Analyzer システム全体構成</title>
+  <desc id="desc">解析予約、配信データ収集、配信データ保管、コンテキスト収集、分析・閲覧、切り抜き支援の目的領域と、各システムの接続を示す構成図</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#081522"/>
+      <stop offset=".55" stop-color="#0e2238"/>
+      <stop offset="1" stop-color="#132b44"/>
+    </linearGradient>
+    <radialGradient id="glowBlue" cx="0" cy="0" r="1" gradientTransform="translate(330 150) rotate(35) scale(520 360)">
+      <stop offset="0" stop-color="#2563eb" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#2563eb" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowViolet" cx="0" cy="0" r="1" gradientTransform="translate(960 800) rotate(-20) scale(520 300)">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <marker id="arrow" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto">
+      <path d="M0 0 11 5.5 0 11Z" fill="#9fb3c8"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto">
+      <path d="M0 0 11 5.5 0 11Z" fill="#c4b5fd"/>
+    </marker>
+    <style>
+      text{font-family:Inter,'Noto Sans JP',system-ui,sans-serif}
+      .title{fill:#f8fafc;font-size:32px;font-weight:850;letter-spacing:-.02em}
+      .subtitle{fill:#aabbd0;font-size:16px}
+      .areaTitle{fill:#f8fafc;font-size:19px;font-weight:850}
+      .areaNo{fill:#fff;font-size:12px;font-weight:900}
+      .systemName{fill:#152238;font-size:16px;font-weight:850}
+      .systemRole{fill:#64748b;font-size:12.5px;font-weight:600}
+      .externalName{fill:#f8fafc;font-size:15px;font-weight:800}
+      .externalRole{fill:#aabbd0;font-size:12px}
+      .arrow{fill:none;stroke:#9fb3c8;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;marker-end:url(#arrow)}
+      .contextArrow{fill:none;stroke:#c4b5fd;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;marker-end:url(#arrowPurple)}
+      .arrowLabel{fill:#93a8bf;font-size:11.5px;font-weight:750}
+      .flowLabel{fill:#dbeafe;font-size:12px;font-weight:800;letter-spacing:.09em}
+    </style>
+  </defs>
+
+  <rect x="8" y="8" width="1584" height="834" rx="38" fill="url(#bg)"/>
+  <rect x="8" y="8" width="1584" height="834" rx="38" fill="url(#glowBlue)"/>
+  <rect x="8" y="8" width="1584" height="834" rx="38" fill="url(#glowViolet)"/>
+
+  <text x="62" y="67" class="title">目的から理解する、システム全体構成</text>
+  <text x="62" y="101" class="subtitle">色付きの領域は「このシステム上の具体的な目的」、白いカードはその目的を担うシステムです。</text>
+
+  <g>
+    <rect x="48" y="166" width="166" height="92" rx="24" fill="#172b42" stroke="#31506d"/>
+    <circle cx="86" cy="205" r="17" fill="#60a5fa"/>
+    <path d="M69 239c4-17 30-17 34 0" fill="#60a5fa"/>
+    <text x="119" y="201" class="externalName">利用者</text>
+    <text x="119" y="224" class="externalRole">配信URLを登録</text>
+  </g>
+
+  <g>
+    <rect x="40" y="652" width="196" height="116" rx="24" fill="#172b42" stroke="#31506d"/>
+    <circle cx="76" cy="690" r="8" fill="#c4b5fd"/>
+    <circle cx="94" cy="704" r="7" fill="#a78bfa"/>
+    <path d="M65 720c3-15 23-15 26 0M83 729c3-14 22-14 25 0" fill="none" stroke="#c4b5fd" stroke-width="5" stroke-linecap="round"/>
+    <text x="116" y="687" class="externalName">周辺情報</text>
+    <text x="116" y="710" class="externalRole">配信者・関係性</text>
+    <text x="116" y="732" class="externalRole">イベント・ミーム</text>
+  </g>
+
+  <text x="252" y="132" class="flowLabel">MAIN FLOW</text>
+
+  <g>
+    <rect x="248" y="150" width="230" height="326" rx="30" fill="#2563eb" fill-opacity=".22" stroke="#60a5fa" stroke-opacity=".52"/>
+    <circle cx="280" cy="184" r="16" fill="#3b82f6"/>
+    <text x="280" y="188" text-anchor="middle" class="areaNo">01</text>
+    <text x="306" y="191" class="areaTitle">解析予約</text>
+    <rect x="270" y="222" width="186" height="96" rx="20" fill="#fff"/>
+    <text x="290" y="250" class="systemName">予約UI</text>
+    <text x="290" y="276" class="systemRole">配信URLと開始予定を</text>
+    <text x="290" y="296" class="systemRole">登録する</text>
+    <rect x="270" y="338" width="186" height="108" rx="20" fill="#fff"/>
+    <text x="290" y="366" class="systemName">予約管理API</text>
+    <text x="290" y="392" class="systemRole">予約情報を保持し</text>
+    <text x="290" y="412" class="systemRole">収集開始を指示する</text>
+  </g>
+
+  <g>
+    <rect x="506" y="150" width="230" height="326" rx="30" fill="#0891b2" fill-opacity=".23" stroke="#22d3ee" stroke-opacity=".55"/>
+    <circle cx="538" cy="184" r="16" fill="#06b6d4"/>
+    <text x="538" y="188" text-anchor="middle" class="areaNo">02</text>
+    <text x="564" y="191" class="areaTitle">配信データ収集</text>
+    <rect x="528" y="222" width="186" height="96" rx="20" fill="#fff"/>
+    <text x="548" y="250" class="systemName">収集ジョブ管理</text>
+    <text x="548" y="276" class="systemRole">予約を受けて</text>
+    <text x="548" y="296" class="systemRole">収集ジョブを起動する</text>
+    <rect x="528" y="338" width="186" height="108" rx="20" fill="#fff"/>
+    <text x="548" y="366" class="systemName">配信収集ワーカー</text>
+    <text x="548" y="392" class="systemRole">メタデータとチャットを</text>
+    <text x="548" y="412" class="systemRole">取得する</text>
+  </g>
+
+  <g>
+    <rect x="764" y="150" width="230" height="326" rx="30" fill="#16a34a" fill-opacity=".21" stroke="#4ade80" stroke-opacity=".52"/>
+    <circle cx="796" cy="184" r="16" fill="#22c55e"/>
+    <text x="796" y="188" text-anchor="middle" class="areaNo">03</text>
+    <text x="822" y="191" class="areaTitle">配信データ保管</text>
+    <rect x="786" y="222" width="186" height="96" rx="20" fill="#fff"/>
+    <text x="806" y="250" class="systemName">配信データDB</text>
+    <text x="806" y="276" class="systemRole">配信とチャットを</text>
+    <text x="806" y="296" class="systemRole">時刻付きで保存する</text>
+    <rect x="786" y="338" width="186" height="108" rx="20" fill="#fff"/>
+    <text x="806" y="366" class="systemName">ジョブ・分析データ</text>
+    <text x="806" y="392" class="systemRole">工程状態と分析結果を</text>
+    <text x="806" y="412" class="systemRole">PostgreSQLへ保存する</text>
+  </g>
+
+  <g>
+    <rect x="1022" y="150" width="230" height="326" rx="30" fill="#f59e0b" fill-opacity=".2" stroke="#fbbf24" stroke-opacity=".55"/>
+    <circle cx="1054" cy="184" r="16" fill="#f59e0b"/>
+    <text x="1054" y="188" text-anchor="middle" class="areaNo">05</text>
+    <text x="1080" y="191" class="areaTitle">分析・閲覧</text>
+    <rect x="1044" y="222" width="186" height="96" rx="20" fill="#fff"/>
+    <text x="1064" y="250" class="systemName">分析API</text>
+    <text x="1064" y="276" class="systemRole">配信データと文脈を</text>
+    <text x="1064" y="296" class="systemRole">結合して提供する</text>
+    <rect x="1044" y="338" width="186" height="108" rx="20" fill="#fff"/>
+    <text x="1064" y="366" class="systemName">配信閲覧UI</text>
+    <text x="1064" y="392" class="systemRole">動画とチャットを</text>
+    <text x="1064" y="412" class="systemRole">時刻同期で表示する</text>
+  </g>
+
+  <g>
+    <rect x="1280" y="150" width="270" height="326" rx="30" fill="#e11d48" fill-opacity=".19" stroke="#fb7185" stroke-opacity=".55"/>
+    <circle cx="1312" cy="184" r="16" fill="#f43f5e"/>
+    <text x="1312" y="188" text-anchor="middle" class="areaNo">06</text>
+    <text x="1338" y="191" class="areaTitle">切り抜き支援</text>
+    <rect x="1302" y="222" width="226" height="96" rx="20" fill="#fff"/>
+    <text x="1322" y="250" class="systemName">候補抽出サービス</text>
+    <text x="1322" y="276" class="systemRole">注目区間と関連する</text>
+    <text x="1322" y="296" class="systemRole">別視点を提示する</text>
+    <rect x="1302" y="338" width="226" height="108" rx="20" fill="#fff"/>
+    <text x="1322" y="366" class="systemName">制作支援UI</text>
+    <text x="1322" y="392" class="systemRole">候補を比較し</text>
+    <text x="1322" y="412" class="systemRole">採否判断を支援する</text>
+  </g>
+
+  <path d="M214 212H235V270H270" class="arrow"/>
+  <text x="220" y="198" class="arrowLabel">登録</text>
+  <path d="M363 318V338" class="arrow"/>
+  <path d="M456 392H488V270H528" class="arrow"/>
+  <path d="M621 318V338" class="arrow"/>
+
+  <g>
+    <rect x="506" y="500" width="230" height="58" rx="20" fill="#172b42" stroke="#31506d"/>
+    <circle cx="540" cy="529" r="16" fill="#ef4444"/>
+    <polygon points="534,519 534,539 550,529" fill="#fff"/>
+    <text x="568" y="526" class="externalName">YouTube</text>
+    <text x="568" y="546" class="externalRole">配信・チャット</text>
+  </g>
+  <path d="M621 500V446" class="arrow"/>
+  <text x="632" y="488" class="arrowLabel">取得</text>
+
+  <path d="M714 392H748V270H786" class="arrow"/>
+  <path d="M714 392H786" class="arrow"/>
+  <path d="M972 270H1044" class="arrow"/>
+  <path d="M1137 318V338" class="arrow"/>
+  <path d="M1230 270H1302" class="arrow"/>
+  <path d="M1415 318V338" class="arrow"/>
+
+  <g>
+    <rect x="506" y="578" width="488" height="252" rx="30" fill="#7c3aed" fill-opacity=".2" stroke="#a78bfa" stroke-opacity=".58"/>
+    <circle cx="540" cy="612" r="16" fill="#8b5cf6"/>
+    <text x="540" y="616" text-anchor="middle" class="areaNo">04</text>
+    <text x="566" y="619" class="areaTitle">コンテキスト収集</text>
+    <rect x="532" y="652" width="208" height="132" rx="20" fill="#fff"/>
+    <text x="552" y="676" class="systemName">コンテキスト</text>
+    <text x="552" y="697" class="systemName">収集サービス</text>
+    <text x="552" y="728" class="systemRole">配信者・イベント・ミームの</text>
+    <text x="552" y="748" class="systemRole">周辺情報を収集する</text>
+    <rect x="760" y="652" width="208" height="132" rx="20" fill="#fff"/>
+    <text x="780" y="681" class="systemName">コンテキストDB</text>
+    <text x="780" y="708" class="systemRole">人物・関係性・出来事を</text>
+    <text x="780" y="728" class="systemRole">再利用できる形で蓄積する</text>
+  </g>
+
+  <path d="M236 710H492" class="contextArrow"/>
+  <text x="318" y="696" class="arrowLabel">周辺情報</text>
+  <path d="M740 718H760" class="contextArrow"/>
+  <path d="M968 718H1002V270H1044" class="contextArrow"/>
+</svg>

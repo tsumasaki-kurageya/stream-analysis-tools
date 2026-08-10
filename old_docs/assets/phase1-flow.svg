@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">Phase 1の利用フロー</title>
+  <desc id="desc">YouTube URLを登録し、バックグラウンドでデータを収集し、動画と同期したチャットを閲覧する流れ。</desc>
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#3b82f6"/></linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0891b2"/><stop offset="1" stop-color="#22c1c3"/></linearGradient>
+    <linearGradient id="violet" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#9b6cf5"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="12" stdDeviation="15" flood-color="#253858" flood-opacity=".12"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 10 5 0 10Z" fill="#91a4bd"/></marker>
+  </defs>
+
+  <path d="M350 248H446" stroke="#91a4bd" stroke-width="7" stroke-linecap="round" marker-end="url(#arrow)"/>
+  <path d="M753 248H849" stroke="#91a4bd" stroke-width="7" stroke-linecap="round" marker-end="url(#arrow)"/>
+
+  <g transform="translate(24 70)" filter="url(#shadow)">
+    <rect width="326" height="380" rx="32" fill="#fff" stroke="#dbe4ef"/>
+    <rect x="28" y="28" width="72" height="34" rx="17" fill="#eaf2ff"/>
+    <text x="64" y="51" text-anchor="middle" fill="#2563eb" font-family="sans-serif" font-size="14" font-weight="700">STEP 1</text>
+    <text x="28" y="105" fill="#142033" font-family="sans-serif" font-size="26" font-weight="700">配信を登録する</text>
+    <text x="28" y="136" fill="#6a768a" font-family="sans-serif" font-size="14">終了済み配信のURLを入力</text>
+
+    <g transform="translate(28 173)">
+      <rect width="270" height="58" rx="14" fill="#f7f9fc" stroke="#ccd7e5"/>
+      <circle cx="29" cy="29" r="13" fill="#ff0033"/>
+      <path d="M26 22 36 29 26 36Z" fill="#fff"/>
+      <text x="54" y="35" fill="#8a95a5" font-family="sans-serif" font-size="13">youtube.com/watch?v=...</text>
+    </g>
+    <g transform="translate(28 249)">
+      <rect width="270" height="72" rx="15" fill="#eff5ff"/>
+      <rect x="12" y="12" width="83" height="48" rx="9" fill="url(#blue)"/>
+      <circle cx="53" cy="36" r="13" fill="#fff"/><path d="M49 29 60 36 49 43Z" fill="#2563eb"/>
+      <text x="111" y="31" fill="#142033" font-family="sans-serif" font-size="13" font-weight="700">配信情報をプレビュー</text>
+      <text x="111" y="51" fill="#69788d" font-family="sans-serif" font-size="11">タイトル・配信日時・取得可否</text>
+    </g>
+    <rect x="28" y="338" width="270" height="16" rx="8" fill="#dce8fa"/>
+    <rect x="28" y="338" width="198" height="16" rx="8" fill="#2563eb"/>
+  </g>
+
+  <g transform="translate(447 28)" filter="url(#shadow)">
+    <rect width="306" height="464" rx="36" fill="#102a43"/>
+    <rect x="26" y="28" width="72" height="34" rx="17" fill="#21466c"/>
+    <text x="62" y="51" text-anchor="middle" fill="#a8d8e5" font-family="sans-serif" font-size="14" font-weight="700">STEP 2</text>
+    <text x="26" y="105" fill="#fff" font-family="sans-serif" font-size="26" font-weight="700">裏側で収集する</text>
+    <text x="26" y="136" fill="#a7b9cd" font-family="sans-serif" font-size="14">画面を閉じても処理を継続</text>
+
+    <g transform="translate(26 174)">
+      <rect width="254" height="72" rx="18" fill="#183956"/>
+      <circle cx="36" cy="36" r="21" fill="url(#cyan)"/>
+      <path d="M28 29h16M28 36h16M28 43h11" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      <text x="73" y="32" fill="#fff" font-family="sans-serif" font-size="14" font-weight="700">メタデータ</text>
+      <text x="73" y="52" fill="#a8bdd2" font-family="sans-serif" font-size="11">完了</text>
+      <circle cx="224" cy="36" r="12" fill="#169c68"/><path d="m218 36 4 4 8-9" fill="none" stroke="#fff" stroke-width="3"/>
+    </g>
+    <g transform="translate(26 258)">
+      <rect width="254" height="72" rx="18" fill="#183956"/>
+      <circle cx="36" cy="36" r="21" fill="url(#blue)"/>
+      <path d="M27 27h18v13H35l-7 6 2-6h-3Z" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+      <text x="73" y="32" fill="#fff" font-family="sans-serif" font-size="14" font-weight="700">ライブチャット</text>
+      <text x="73" y="52" fill="#a8bdd2" font-family="sans-serif" font-size="11">12,450件を取得中</text>
+      <circle cx="224" cy="36" r="12" fill="none" stroke="#61a5ff" stroke-width="4" stroke-dasharray="42 22"/>
+    </g>
+    <g transform="translate(26 342)">
+      <rect width="254" height="72" rx="18" fill="#183956"/>
+      <circle cx="36" cy="36" r="21" fill="url(#violet)"/>
+      <path d="M27 28h18v16H27Zm4 5h10m-10 5h7" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+      <text x="73" y="32" fill="#fff" font-family="sans-serif" font-size="14" font-weight="700">収集状態</text>
+      <text x="73" y="52" fill="#a8bdd2" font-family="sans-serif" font-size="11">工程別に確認</text>
+      <circle cx="224" cy="36" r="12" fill="#36526d"/>
+    </g>
+  </g>
+
+  <g transform="translate(850 70)" filter="url(#shadow)">
+    <rect width="326" height="380" rx="32" fill="#fff" stroke="#dbe4ef"/>
+    <rect x="28" y="28" width="72" height="34" rx="17" fill="#efeaff"/>
+    <text x="64" y="51" text-anchor="middle" fill="#7c3aed" font-family="sans-serif" font-size="14" font-weight="700">STEP 3</text>
+    <text x="28" y="105" fill="#142033" font-family="sans-serif" font-size="26" font-weight="700">同期して見返す</text>
+    <text x="28" y="136" fill="#6a768a" font-family="sans-serif" font-size="14">動画とチャットを同じ時刻で確認</text>
+
+    <g transform="translate(28 170)">
+      <rect width="170" height="104" rx="15" fill="#132a46"/>
+      <circle cx="85" cy="52" r="25" fill="#fff" opacity=".94"/><path d="M79 40 96 52 79 64Z" fill="#7c3aed"/>
+      <rect y="115" width="170" height="8" rx="4" fill="#dde4ed"/>
+      <rect y="115" width="101" height="8" rx="4" fill="#7c3aed"/>
+      <circle cx="101" cy="119" r="7" fill="#7c3aed"/>
+    </g>
+    <g transform="translate(213 170)">
+      <rect width="85" height="151" rx="15" fill="#f5f7fb" stroke="#e0e6ef"/>
+      <rect x="12" y="14" width="61" height="22" rx="7" fill="#eaf2ff"/>
+      <rect x="12" y="48" width="56" height="7" rx="3.5" fill="#cbd6e5"/>
+      <rect x="12" y="62" width="43" height="7" rx="3.5" fill="#e0e6ef"/>
+      <rect x="12" y="82" width="61" height="32" rx="7" fill="#efeaff"/>
+      <rect x="12" y="126" width="50" height="7" rx="3.5" fill="#d4dce7"/>
+    </g>
+    <rect x="28" y="321" width="270" height="38" rx="12" fill="#eaf8f2"/>
+    <circle cx="48" cy="340" r="10" fill="#169c68"/><path d="m43 340 4 4 7-9" fill="none" stroke="#fff" stroke-width="2.5"/>
+    <text x="68" y="345" fill="#217355" font-family="sans-serif" font-size="13" font-weight="700">収集完了 — すぐに閲覧可能</text>
+  </g>
+
+  <g transform="translate(336 500)">
+    <rect width="528" height="42" rx="21" fill="#edf2f8"/>
+    <text x="264" y="27" text-anchor="middle" fill="#5e6c80" font-family="sans-serif" font-size="13" font-weight="700">URLごとの工程・進捗・件数・失敗箇所を明確に表示</text>
+  </g>
+</svg>

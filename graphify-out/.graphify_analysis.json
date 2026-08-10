@@ -1,0 +1,340 @@
+{
+  "communities": {
+    "0": [
+      "old_docs_m2_completion_demo_background_chat_collection",
+      "old_docs_m2_completion_demo_document",
+      "old_docs_m2_completion_demo_production_demo",
+      "old_docs_m2_completion_demo_sensitive_data_redaction",
+      "old_docs_m4_reservation_data_model_api_errors",
+      "old_docs_m4_reservation_data_model_monitor_error_persistence",
+      "old_docs_railway_verification_environment_document",
+      "old_docs_railway_verification_environment_five_services",
+      "old_docs_railway_verification_environment_gateway_precheck",
+      "old_docs_railway_verification_environment_private_topology",
+      "old_docs_railway_verification_environment_secret_rotation",
+      "old_docs_railway_verification_environment_shared_secrets",
+      "old_docs_youtube_data_gateway_contract_chat_replay_endpoint",
+      "old_docs_youtube_data_gateway_contract_error_classification",
+      "old_docs_youtube_data_gateway_contract_gateway_service",
+      "old_docs_youtube_data_gateway_contract_opaque_continuation",
+      "old_docs_youtube_data_gateway_contract_openapi_contract",
+      "old_docs_youtube_data_gateway_contract_postgres_source_of_truth",
+      "old_docs_youtube_data_gateway_contract_sensitive_log_redaction"
+    ],
+    "1": [
+      "old_docs_decisions_0002_m2_background_collection_job_model_background_collection_job_model",
+      "old_docs_decisions_0002_m2_background_collection_job_model_chat_message_idempotency",
+      "old_docs_decisions_0002_m2_background_collection_job_model_claim_lease_heartbeat",
+      "old_docs_design_m1_stream_data_model_idempotent_stream_registration",
+      "old_docs_design_m1_stream_data_model_m1_stream_data_model",
+      "old_docs_design_m1_stream_data_model_stream_record",
+      "old_docs_development_m1_completion_demo_m1_end_to_end_validation",
+      "old_docs_development_milestones_phase_one_archive_experience",
+      "old_docs_development_milestones_vertical_slice_milestones",
+      "old_docs_index_first_product_collection_foundation",
+      "old_docs_m2_collection_data_model_chat_message_schema",
+      "old_docs_m2_collection_data_model_collection_job_schema",
+      "old_docs_m2_collection_data_model_collection_step_schema",
+      "old_docs_m2_collection_data_model_m2_collection_data_model"
+    ],
+    "2": [
+      "old_docs_architecture_elapsed_time_axis",
+      "old_docs_architecture_postgresql_job_coordination",
+      "old_docs_architecture_python_collection_worker",
+      "old_docs_architecture_youtube_data_gateway",
+      "old_docs_decisions_0003_m3_multi_step_collection_and_sync_contract_elapsed_millisecond_contract",
+      "old_docs_decisions_0003_m3_multi_step_collection_and_sync_contract_normalized_transcript_segment",
+      "old_docs_decisions_0004_youtube_data_gateway_service_independent_gateway_service",
+      "old_docs_decisions_0005_discontinue_media_and_transcript_collection_postgresql_only_persistence",
+      "old_docs_development_local_development_dev_container_workflow",
+      "old_docs_development_local_development_graphify_code_only_workflow",
+      "old_docs_development_local_development_local_development"
+    ],
+    "3": [
+      "old_docs_architecture_main_api_control_plane",
+      "old_docs_architecture_modular_monolith",
+      "old_docs_architecture_youtube_stream_analyzer_architecture",
+      "old_docs_decisions_0001_m1_stream_metadata_acquisition_adr_0001",
+      "old_docs_decisions_0001_m1_stream_metadata_acquisition_preview_revalidation",
+      "old_docs_decisions_0001_m1_stream_metadata_acquisition_synchronous_metadata_acquisition",
+      "old_docs_development_m1_local_architecture_m1_local_architecture",
+      "old_docs_development_m1_local_architecture_openapi_contract_first",
+      "old_docs_development_milestones_development_milestones",
+      "old_docs_implementation_plans_readme_implementation_plans"
+    ],
+    "4": [
+      "old_docs_decisions_0003_m3_multi_step_collection_and_sync_contract_job_step_aggregation",
+      "old_docs_decisions_0003_m3_multi_step_collection_and_sync_contract_step_level_retry",
+      "old_docs_decisions_0004_m4_reservation_state_machine_optimistic_locking",
+      "old_docs_decisions_0004_m4_reservation_state_machine_reservation_collection_boundary",
+      "old_docs_decisions_0004_m4_reservation_state_machine_reservation_state_machine",
+      "old_docs_decisions_0005_discontinue_media_and_transcript_collection_media_transcript_discontinuation",
+      "old_docs_decisions_0005_discontinue_media_and_transcript_collection_two_step_collection",
+      "old_docs_implementation_plans_remove_media_and_transcript_collection_chat_only_sync_and_search",
+      "old_docs_implementation_plans_remove_media_and_transcript_collection_forward_migration",
+      "old_docs_implementation_plans_remove_media_and_transcript_collection_incremental_removal_rollout"
+    ],
+    "5": [
+      "old_docs_m4_reservation_data_model_active_video_uniqueness",
+      "old_docs_m4_reservation_data_model_collection_job",
+      "old_docs_m4_reservation_data_model_document",
+      "old_docs_m4_reservation_data_model_lease_heartbeat",
+      "old_docs_m4_reservation_data_model_optimistic_locking",
+      "old_docs_m4_reservation_data_model_reservation",
+      "old_docs_m4_reservation_data_model_reservation_transition",
+      "old_docs_m4_reservation_data_model_transactional_linking"
+    ],
+    "6": [
+      "old_docs_m4_reservation_data_model_state_machine",
+      "old_docs_product_roadmap_media_transcript_exclusion",
+      "old_docs_product_roadmap_phase_one",
+      "old_docs_product_roadmap_phase_three",
+      "old_docs_product_roadmap_phase_two",
+      "old_docs_youtube_data_gateway_contract_document",
+      "old_docs_youtube_data_gateway_contract_gateway_adr",
+      "old_docs_youtube_data_gateway_contract_media_adr"
+    ],
+    "7": [
+      "old_docs_product_roadmap_background_job_architecture",
+      "old_docs_product_roadmap_collection_domain_model",
+      "old_docs_product_roadmap_step_level_retry",
+      "old_docs_repository_structure_application_layout",
+      "old_docs_repository_structure_document",
+      "old_docs_repository_structure_milestone_driven_scaffolding",
+      "old_docs_repository_structure_placement_responsibilities",
+      "old_docs_repository_structure_supporting_layout"
+    ],
+    "8": [
+      "old_docs_decisions_0004_youtube_data_gateway_service_bearer_token_rotation",
+      "old_docs_decisions_0004_youtube_data_gateway_service_gateway_http_contract",
+      "old_docs_decisions_0004_youtube_data_gateway_service_problem_details_error_contract",
+      "old_docs_development_configuration_configuration_and_secrets",
+      "old_docs_development_configuration_environment_variable_configuration",
+      "old_docs_development_configuration_secret_management",
+      "old_docs_development_m1_local_architecture_problem_details_contract"
+    ],
+    "9": [
+      "old_docs_m2_completion_demo_e2e_fixture",
+      "old_docs_m2_completion_demo_idempotent_recollection",
+      "old_docs_m3_completion_demo_chat_search_and_seek",
+      "old_docs_m3_completion_demo_document",
+      "old_docs_m3_completion_demo_production_acceptance",
+      "old_docs_m3_completion_demo_two_stage_collection",
+      "old_docs_m3_completion_demo_video_chat_synchronization"
+    ],
+    "10": [
+      "old_docs_m4_completion_demo_document",
+      "old_docs_m4_completion_demo_m4_demo_report",
+      "old_docs_m4_completion_demo_reservation_lifecycle",
+      "old_docs_m4_completion_demo_single_collection_job",
+      "old_docs_m4_completion_demo_worker_restart_recovery",
+      "old_docs_railway_verification_environment_strict_report",
+      "old_docs_railway_verification_environment_worker_restart_verification"
+    ],
+    "11": [
+      "old_docs_architecture_structured_context_database",
+      "old_docs_development_milestones_contextual_clip_support",
+      "old_docs_index_clip_discovery_experience",
+      "old_docs_index_youtube_stream_analyzer_site"
+    ],
+    "12": [
+      "old_docs_decisions_0003_m3_multi_step_collection_and_sync_contract_adr_0003",
+      "old_docs_decisions_0005_discontinue_media_and_transcript_collection_adr_0005",
+      "old_docs_implementation_plans_remove_media_and_transcript_collection_removal_plan"
+    ],
+    "13": [
+      "old_docs_decisions_readme_adr_lifecycle",
+      "old_docs_decisions_readme_architecture_decision_records",
+      "old_docs_decisions_template_adr_template"
+    ],
+    "14": [
+      "old_docs_product_roadmap_document",
+      "old_docs_product_roadmap_phase_four",
+      "old_docs_product_roadmap_product_goal"
+    ],
+    "15": [
+      "old_docs_implementation_plans_readme_dependency_ordered_planning",
+      "old_docs_implementation_plans_template_implementation_plan_template"
+    ],
+    "16": [
+      "old_docs_decisions_0002_m2_background_collection_job_model_adr_0002"
+    ],
+    "17": [
+      "old_docs_decisions_0004_m4_reservation_state_machine_adr_0004"
+    ],
+    "18": [
+      "old_docs_decisions_0004_youtube_data_gateway_service_adr_0004"
+    ],
+    "19": [
+      "old_docs_development_m1_completion_demo_m1_completion_demo"
+    ]
+  },
+  "cohesion": {
+    "0": 0.11695906432748537,
+    "1": 0.16483516483516483,
+    "2": 0.18181818181818182,
+    "3": 0.2,
+    "4": 0.2,
+    "5": 0.25,
+    "6": 0.25,
+    "7": 0.25,
+    "8": 0.2857142857142857,
+    "9": 0.3333333333333333,
+    "10": 0.3333333333333333,
+    "11": 0.5,
+    "12": 0.6666666666666666,
+    "13": 0.6666666666666666,
+    "14": 0.6666666666666666,
+    "15": 1.0,
+    "16": 1.0,
+    "17": 1.0,
+    "18": 1.0,
+    "19": 1.0
+  },
+  "gods": [
+    {
+      "id": "old_docs_youtube_data_gateway_contract_gateway_service",
+      "label": "YouTube Data Gateway Service",
+      "degree": 8
+    },
+    {
+      "id": "old_docs_m4_reservation_data_model_reservation",
+      "label": "Reservation",
+      "degree": 7
+    },
+    {
+      "id": "old_docs_decisions_0002_m2_background_collection_job_model_background_collection_job_model",
+      "label": "Background Collection Job Model",
+      "degree": 6
+    },
+    {
+      "id": "old_docs_architecture_postgresql_job_coordination",
+      "label": "PostgreSQL Job Coordination",
+      "degree": 5
+    },
+    {
+      "id": "old_docs_development_milestones_phase_one_archive_experience",
+      "label": "Phase 1 Archive Collection and Synchronized Viewing",
+      "degree": 5
+    },
+    {
+      "id": "old_docs_m4_completion_demo_reservation_lifecycle",
+      "label": "Reservation Lifecycle",
+      "degree": 5
+    },
+    {
+      "id": "old_docs_product_roadmap_phase_one",
+      "label": "Phase 1 Manual Background Collection",
+      "degree": 5
+    },
+    {
+      "id": "old_docs_architecture_main_api_control_plane",
+      "label": "Main API Control Plane",
+      "degree": 4
+    },
+    {
+      "id": "old_docs_decisions_0003_m3_multi_step_collection_and_sync_contract_job_step_aggregation",
+      "label": "Job and Step State Aggregation",
+      "degree": 4
+    },
+    {
+      "id": "old_docs_decisions_0005_discontinue_media_and_transcript_collection_two_step_collection",
+      "label": "Metadata and Chat Two-step Collection",
+      "degree": 4
+    }
+  ],
+  "surprises": [
+    {
+      "source": "First Product Collection Foundation",
+      "target": "Phase 1 Archive Collection and Synchronized Viewing",
+      "source_files": [
+        "index.html",
+        "development-milestones.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "semantically_similar_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; semantically similar concepts with no structural link; peripheral node `First Product Collection Foundation` unexpectedly reaches hub `Phase 1 Archive Collection and Synchronized Viewing`"
+    },
+    {
+      "source": "Background Chat Collection",
+      "target": "Phase 1 Manual Background Collection",
+      "source_files": [
+        "m2-completion-demo.md",
+        "product-roadmap.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "semantically_similar_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities; semantically similar concepts with no structural link"
+    },
+    {
+      "source": "Reservation Lifecycle",
+      "target": "Reservation State Machine",
+      "source_files": [
+        "m4-completion-demo.md",
+        "m4-reservation-data-model.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "semantically_similar_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities; semantically similar concepts with no structural link"
+    },
+    {
+      "source": "RFC 9457 Problem Details Contract",
+      "target": "Gateway Problem Details Error Contract",
+      "source_files": [
+        "development/m1-local-architecture.md",
+        "decisions/0004-youtube-data-gateway-service.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "semantically_similar_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; semantically similar concepts with no structural link"
+    },
+    {
+      "source": "Clip Discovery Experience",
+      "target": "Contextual Multi-view Clip Support",
+      "source_files": [
+        "index.html",
+        "development-milestones.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "semantically_similar_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; semantically similar concepts with no structural link"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `Phase 1 Manual Background Collection` connect `Community 6` to `Community 0`, `Community 9`, `Community 7`?",
+      "why": "High betweenness centrality (0.132) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `Background Collection Job Model` connect `Community 1` to `Community 2`, `Community 4`?",
+      "why": "High betweenness centrality (0.085) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `PostgreSQL Job Coordination` connect `Community 2` to `Community 1`, `Community 3`?",
+      "why": "High betweenness centrality (0.085) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 2 inferred relationships involving `YouTube Data Gateway Service` (e.g. with `Gateway Real-Data Precheck` and `Web-Only Public Railway Topology`) actually correct?",
+      "why": "`YouTube Data Gateway Service` has 2 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 2 inferred relationships involving `Phase 1 Archive Collection and Synchronized Viewing` (e.g. with `Background Collection Job Model` and `First Product Collection Foundation`) actually correct?",
+      "why": "`Phase 1 Archive Collection and Synchronized Viewing` has 2 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `Structured Context Database`, `ADR-0001 M1 Stream Metadata Acquisition`, `ADR-0002 M2 Background Collection Job Model` to the rest of the system?",
+      "why": "50 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `Community 0` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.11695906432748537 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="YouTube Stream Analyzerは、長時間・複数視点の配信から切り抜き候補を探すためのデータ収集・制作支援プロジェクトです。">
+  <title>YouTube Stream Analyzer</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+  <link rel="stylesheet" href="./assets/system-overview.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="YouTube Stream Analyzer トップへ">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" role="img"><circle cx="20" cy="20" r="15" fill="#2563eb"/><polygon points="16,11 30,20 16,29" fill="#fff"/></svg>
+      </span>
+      <span>YouTube Stream Analyzer</span>
+    </a>
+    <nav aria-label="ページ内ナビゲーション">
+      <a href="#problem">解決したいこと</a>
+      <a href="#first-step">まず作るもの</a>
+      <a href="#roadmap">ロードマップ</a>
+      <a href="#system-overview">全体構成</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero section-shell">
+      <div class="hero-copy">
+        <p class="eyebrow">YouTube CLIP PRODUCTION SUPPORT</p>
+        <h1>長時間配信から、<br><span>見るべき瞬間</span>へ。</h1>
+        <p class="lead">複数の配信アーカイブ、ライブチャット、時系列データを集め、切り抜き制作に必要な場面探索を支援するプロジェクトです。</p>
+        <div class="hero-pills" aria-label="プロジェクトの特徴">
+          <span>長時間配信</span>
+          <span>複数視点</span>
+          <span>文脈を踏まえた探索</span>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <img src="./assets/project-overview.svg" alt="多数の長時間配信から、データを集めて切り抜き候補へ絞り込むプロジェクト全体像">
+      </div>
+    </section>
+
+    <section id="problem" class="section-shell section-block">
+      <div class="section-heading">
+        <p class="section-number">01</p>
+        <div>
+          <p class="eyebrow">THE PROBLEM</p>
+          <h2>切り抜き制作で重いのは、編集より前の「探す」工程</h2>
+        </div>
+      </div>
+
+      <div class="problem-grid">
+        <article class="problem-card">
+          <span class="problem-icon duration" aria-hidden="true">9h</span>
+          <h3>1配信が長い</h3>
+          <p>1本6〜9時間。候補を探すためだけに、膨大な視聴時間が必要になります。</p>
+        </article>
+        <article class="problem-card">
+          <span class="problem-icon views" aria-hidden="true">×10</span>
+          <h3>視点が分散する</h3>
+          <p>同じ出来事でも配信者ごとに映像と会話が異なり、複数配信を往復して確認します。</p>
+        </article>
+        <article class="problem-card">
+          <span class="problem-icon context" aria-hidden="true">…</span>
+          <h3>面白さは文脈で決まる</h3>
+          <p>関係性、過去の出来事、ミーム、前後の掛け合いを知らなければ価値を判断できません。</p>
+        </article>
+      </div>
+
+      <div class="statement">
+        <p>だから、単純な「コメント数のピーク検出」だけでは足りない。</p>
+        <strong>候補を絞り、前後を見て、別視点と文脈を辿れることが必要です。</strong>
+      </div>
+    </section>
+
+    <section id="first-step" class="section-block section-tint">
+      <div class="section-shell">
+        <div class="section-heading">
+          <p class="section-number">02</p>
+          <div>
+            <p class="eyebrow">FIRST PRODUCT</p>
+            <h2>まずは「確実に集めて、すぐ見返せる」基盤を作る</h2>
+            <p class="section-lead">AIによる高度な分析より先に、終了済み配信を指定して必要なデータをバックグラウンド収集し、動画と同期して閲覧できる状態を完成させます。</p>
+          </div>
+        </div>
+
+        <figure class="visual-panel">
+          <img src="./assets/phase1-flow.svg" alt="YouTube URLの登録、バックグラウンド収集、動画と同期したデータ閲覧までの流れ">
+          <figcaption>画面操作はシンプルに。時間のかかる処理はサーバー側で継続し、進捗と失敗箇所を明確に表示します。</figcaption>
+        </figure>
+
+        <div class="data-strip" aria-label="収集するデータ">
+          <div><span class="data-dot metadata"></span><strong>配信情報</strong><small>タイトル・日時・チャンネル・サムネイル</small></div>
+          <div><span class="data-dot chat"></span><strong>ライブチャット</strong><small>投稿時刻・本文・投稿者・属性</small></div>
+          <div><span class="data-dot status"></span><strong>収集状態</strong><small>工程・進捗・件数・エラー・再実行</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="experience" class="section-shell section-block">
+      <div class="section-heading compact-heading">
+        <p class="section-number">03</p>
+        <div>
+          <p class="eyebrow">USER EXPERIENCE</p>
+          <h2>集めたデータは、切り抜き制作の判断に使える形で見せる</h2>
+        </div>
+      </div>
+
+      <div class="viewer-mock" role="img" aria-label="動画プレーヤーと時刻同期したチャット、検索を並べた閲覧画面のイメージ">
+        <div class="viewer-topbar">
+          <span class="viewer-dot"></span><span class="viewer-dot"></span><span class="viewer-dot"></span>
+          <span class="viewer-title">配信詳細 — 収集完了</span>
+        </div>
+        <div class="viewer-content">
+          <div class="video-area">
+            <div class="video-placeholder"><span class="play-button">▶</span></div>
+            <div class="timeline">
+              <span class="timeline-playhead"></span>
+              <span class="peak p1"></span><span class="peak p2"></span><span class="peak p3"></span><span class="peak p4"></span>
+            </div>
+            <div class="chat-highlight-card">
+              <span class="timecode">02:14:08</span>
+              <p>チャットが急増した場面</p>
+            </div>
+          </div>
+          <aside class="chat-area">
+            <div class="search-box">チャットを検索</div>
+            <div class="chat-message hot"><time>02:14:10</time><p>ここ好き</p></div>
+            <div class="chat-message"><time>02:14:12</time><p>前回の伏線回収だ</p></div>
+            <div class="chat-message"><time>02:14:13</time><p>この二人のやり取りおもろい</p></div>
+            <div class="chat-message"><time>02:14:17</time><p>別視点も見たい</p></div>
+            <span class="jump-button">この時刻へ移動</span>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section id="roadmap" class="section-block section-dark">
+      <div class="section-shell">
+        <div class="section-heading light-heading">
+          <p class="section-number">04</p>
+          <div>
+            <p class="eyebrow">ROADMAP</p>
+            <h2>収集基盤から、文脈を理解する切り抜き支援へ</h2>
+          </div>
+        </div>
+        <figure class="roadmap-figure">
+          <img src="./assets/roadmap.svg" alt="アーカイブ収集、予約収集、リアルタイム解析、文脈を踏まえた切り抜き支援へ段階的に進むロードマップ">
+        </figure>
+        <div class="goal-card">
+          <p>最終的に目指すもの</p>
+          <strong>ベテラン切り抜き師が行う「候補を探す → 前後を確認する → 別視点を辿る → 文脈から採用を判断する」という思考プロセスの支援</strong>
+        </div>
+
+        <div id="system-overview" class="system-overview-block">
+          <div class="system-overview-heading">
+            <div>
+              <p class="eyebrow">SYSTEM OVERVIEW</p>
+              <h3>目的ごとに、システムとつながりを俯瞰する</h3>
+            </div>
+            <p>解析予約から切り抜き支援までを具体的な目的で色分けし、各領域に実際のシステムと責務を配置しています。</p>
+          </div>
+          <figure class="system-overview-figure">
+            <img src="./assets/system-overview.svg" alt="解析予約、配信データ収集、配信データ保管、コンテキスト収集、分析・閲覧、切り抜き支援の各領域とシステムの接続">
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-shell detail-link">
+      <div>
+        <p class="eyebrow">FOR DEVELOPERS</p>
+        <h2>設計・実装の詳細</h2>
+        <p>フェーズごとの対象範囲、収集データ、画面、ジョブ状態、データモデルはプロダクト方針に整理しています。</p>
+      </div>
+      <a href="https://github.com/tsumasaki-kurageya/youtube-stream-analyzer/blob/main/docs/product-roadmap.md">プロダクト方針とロードマップを見る <span aria-hidden="true">→</span></a>
+    </section>
+  </main>
+
+  <footer>
+    <p>YouTube Stream Analyzer</p>
+    <small>長時間配信のデータ収集と切り抜き制作支援</small>
+  </footer>
+</body>
+</html>
