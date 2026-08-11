@@ -1,0 +1,22 @@
+{
+  "name": "@stream-analysis-tools/contracts",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "npm@11.9.0",
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "scripts": {
+    "format": "prettier --write \"**/*.{json,md,yaml}\"",
+    "format:check": "prettier --check \"**/*.{json,md,yaml}\"",
+    "generate": "openapi-typescript && prettier --write ../apps/web/src/api/generated/v1.ts",
+    "lint": "redocly lint --config redocly.yaml openapi/v1.yaml"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.46.0",
+    "openapi-typescript": "7.13.0",
+    "prettier": "3.9.6"
+  }
+}

@@ -1,24 +1,26 @@
 package httpapi
 
 import (
-	"encoding/json"
+	"context"
 	"net/http"
+
+	openapiv1 "github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/generated/openapiv1"
 )
 
-type healthResponse struct {
-	Component string `json:"component"`
-	Status    string `json:"status"`
+type server struct{}
+
+var _ openapiv1.StrictServerInterface = (*server)(nil)
+
+func (*server) GetHealth(
+	context.Context,
+	openapiv1.GetHealthRequestObject,
+) (openapiv1.GetHealthResponseObject, error) {
+	return openapiv1.GetHealth200JSONResponse{
+		Component: "main-api",
+		Status:    openapiv1.Ok,
+	}, nil
 }
 
 func NewHandler() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", func(writer http.ResponseWriter, _ *http.Request) {
-		writer.Header().Set("Content-Type", "application/json")
-		writer.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(writer).Encode(healthResponse{
-			Component: "main-api",
-			Status:    "ok",
-		})
-	})
-	return mux
+	return openapiv1.Handler(openapiv1.NewStrictHandler(&server{}, nil))
 }
