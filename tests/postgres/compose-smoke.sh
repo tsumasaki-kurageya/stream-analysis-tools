@@ -34,8 +34,12 @@ test_database_count="$(
     --dbname postgres \
     --tuples-only \
     --no-align \
-    --set=test_database="$POSTGRES_TEST_DB" \
-    --command="SELECT count(*) FROM pg_database WHERE datname = :'test_database';"
+    --set=ON_ERROR_STOP=1 \
+    --set=test_database="$POSTGRES_TEST_DB" <<'SQL'
+SELECT count(*)
+FROM pg_database
+WHERE datname = :'test_database';
+SQL
 )"
 test "$test_database_count" = "1"
 
