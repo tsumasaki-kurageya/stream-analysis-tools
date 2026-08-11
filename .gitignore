@@ -1,0 +1,29 @@
+# JavaScript
+node_modules/
+dist/
+
+# Go
+apps/api/bin/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Coverage and reports
+coverage/
+htmlcov/
+.coverage
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+
+# Local environment
+.env
+.env.*.local
