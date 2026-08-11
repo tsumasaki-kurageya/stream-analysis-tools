@@ -52,4 +52,16 @@ make -C apps/api check build
 make -C apps/worker check build
 ```
 
+Start PostgreSQL and wait until it accepts connections:
+
+```sh
+make db-up
+```
+
+The default local connection is
+`postgresql://stream_analysis:stream_analysis_local@localhost:5432/stream_analysis?sslmode=disable`.
+Copy `.env.example` to `.env` to override local values. See the
+[PostgreSQL development guide](docs/development/postgresql.md) for database conventions,
+shutdown, reset, and troubleshooting procedures.
+
 The scaffold intentionally contains only health/startup seams. Stream registration, persistence, collection, and reservation behavior are implemented by later milestone issues.
