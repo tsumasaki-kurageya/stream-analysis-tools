@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Stream Analysis Tools API
-  version: 0.1.0
+  version: 0.2.0
   description: HTTP contract for the stream analysis main API.
 servers:
   - url: http://localhost:8080
@@ -9,6 +9,8 @@ servers:
 tags:
   - name: Operations
     description: Operational endpoints used to observe service health.
+  - name: Streams
+    description: YouTube stream metadata preview, registration, and retrieval.
 paths:
   /healthz:
     get:
@@ -24,6 +26,128 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
+        default:
+          $ref: "#/components/responses/Problem"
+  /v1/streams/preview:
+    post:
+      operationId: previewStream
+      summary: Preview a YouTube stream
+      description: Validates a YouTube URL and fetches current metadata without persisting it.
+      tags:
+        - Streams
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StreamURLInput"
+      responses:
+        "200":
+          description: Current metadata for the stream.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreamPreview"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /v1/streams:
+    post:
+      operationId: createStream
+      summary: Register a YouTube stream
+      description: Revalidates current YouTube metadata and persists a new stream.
+      tags:
+        - Streams
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StreamURLInput"
+      responses:
+        "201":
+          description: The stream was registered.
+          headers:
+            Location:
+              description: Relative URL of the registered stream.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stream"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    get:
+      operationId: listStreams
+      summary: List registered streams
+      description: Returns registered streams in reverse creation order with offset pagination.
+      tags:
+        - Streams
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of streams to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of streams to skip.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: A page of registered streams.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreamList"
+        "400":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /v1/streams/{streamId}:
+    get:
+      operationId: getStream
+      summary: Get a registered stream
+      description: Returns one registered stream by its internal identifier.
+      tags:
+        - Streams
+      parameters:
+        - name: streamId
+          in: path
+          required: true
+          description: Internal stream identifier.
+          schema:
+            type: string
+            pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+      responses:
+        "200":
+          description: The registered stream.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stream"
+        "404":
+          $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
 components:
@@ -53,10 +177,123 @@ components:
           enum:
             - ok
           description: Current health status.
+    StreamURLInput:
+      type: object
+      additionalProperties: false
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          description: A supported YouTube watch, live, Shorts, embed, or youtu.be URL.
+          examples:
+            - https://www.youtube.com/watch?v=dQw4w9WgXcQ
+    StreamPreview:
+      type: object
+      additionalProperties: false
+      required:
+        - youtubeVideoId
+        - canonicalUrl
+        - title
+        - channelId
+        - channelTitle
+        - lifecycleStatus
+        - metadataFetchedAt
+      properties:
+        youtubeVideoId:
+          type: string
+          minLength: 11
+          maxLength: 11
+        canonicalUrl:
+          type: string
+          format: uri
+        title:
+          type: string
+          minLength: 1
+        channelId:
+          type: string
+          minLength: 1
+        channelTitle:
+          type: string
+          minLength: 1
+        thumbnailUrl:
+          type: string
+          format: uri
+        scheduledStartAt:
+          type: string
+          format: date-time
+        actualStartAt:
+          type: string
+          format: date-time
+        actualEndAt:
+          type: string
+          format: date-time
+        durationMs:
+          type: integer
+          format: int64
+          minimum: 0
+        lifecycleStatus:
+          $ref: "#/components/schemas/StreamLifecycleStatus"
+        metadataFetchedAt:
+          type: string
+          format: date-time
+    Stream:
+      allOf:
+        - $ref: "#/components/schemas/StreamPreview"
+        - type: object
+          additionalProperties: false
+          required:
+            - id
+            - createdAt
+            - updatedAt
+          properties:
+            id:
+              type: string
+              pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    StreamList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - limit
+        - offset
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Stream"
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        offset:
+          type: integer
+          minimum: 0
+    StreamLifecycleStatus:
+      type: string
+      enum:
+        - unknown
+        - scheduled
+        - live
+        - ended
+        - unavailable
     ProblemDetails:
       type: object
       additionalProperties: true
-      description: RFC 9457 Problem Details object. Extension members are allowed.
+      description: RFC 9457 Problem Details object with a stable product-level code.
+      required:
+        - title
+        - status
+        - detail
+        - code
       properties:
         type:
           type: string
@@ -77,3 +314,7 @@ components:
           type: string
           format: uri-reference
           description: URI reference identifying this problem occurrence.
+        code:
+          type: string
+          pattern: "^[A-Z][A-Z0-9_]*$"
+          description: Stable machine-readable product error code.
