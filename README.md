@@ -58,10 +58,21 @@ Start PostgreSQL and wait until it accepts connections:
 make db-up
 ```
 
+Start the Main API from the repository root after setting a YouTube Data API key in
+the environment (or an untracked `.env` file loaded by your shell):
+
+```sh
+YSA_YOUTUBE_API_KEY=<api-key> ./apps/api/bin/main-api
+```
+
+The API applies ordered migrations at startup. `YSA_MIGRATIONS_DIR` defaults to
+`migrations`, relative to the process working directory.
+
 The default local connection is
 `postgresql://stream_analysis:stream_analysis_local@localhost:5432/stream_analysis?sslmode=disable`.
 Copy `.env.example` to `.env` to override local values. See the
 [PostgreSQL development guide](docs/development/postgresql.md) for database conventions,
 shutdown, reset, and troubleshooting procedures.
 
-The scaffold intentionally contains only health/startup seams. Stream registration, persistence, collection, and reservation behavior are implemented by later milestone issues.
+The Main API exposes stream metadata preview, registration, list, and detail endpoints.
+Collection and reservation behavior are implemented by later milestone issues.
