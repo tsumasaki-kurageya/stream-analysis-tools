@@ -1,0 +1,19 @@
+apis:
+  v1:
+    root: openapi/v1.yaml
+    x-openapi-ts:
+      output: ../apps/web/src/api/generated/v1.ts
+
+extends:
+  - recommended
+
+rules:
+  info-license: off
+  no-server-example.com: off
+  no-unused-components: error
+  operation-4xx-response: off
+  operation-description: error
+  operation-operationId: error
+  operation-summary: error
+  security-defined: off
+  spec-strict-refs: error

@@ -1,10 +1,12 @@
 SHELL := /usr/bin/env bash
 
 .PHONY: bootstrap format format-check lint typecheck test build check clean \
-	db-up db-wait db-status db-down db-reset db-logs db-smoke
+	db-up db-wait db-status db-down db-reset db-logs db-smoke \
+	contract-bootstrap contract-lint contract-generate contract-check
 
 bootstrap:
 	npm --prefix apps/web ci
+	npm --prefix contracts ci
 	uv sync --project apps/worker --frozen --all-groups
 
 format:
@@ -45,6 +47,21 @@ clean:
 	$(MAKE) -C apps/web clean
 	$(MAKE) -C apps/api clean
 	$(MAKE) -C apps/worker clean
+
+contract-bootstrap:
+	npm --prefix contracts ci
+
+contract-lint:
+	npm --prefix contracts run format:check
+	npm --prefix contracts run lint
+
+contract-generate:
+	npm --prefix contracts run generate
+	$(MAKE) -C apps/api contract-generate
+
+contract-check: contract-lint contract-generate
+	git diff --exit-code -- apps/api/internal/generated/openapiv1/api.gen.go apps/web/src/api/generated/v1.ts
+	test -z "$$(git status --porcelain -- apps/api/internal/generated/openapiv1/api.gen.go apps/web/src/api/generated/v1.ts)"
 
 db-up:
 	docker compose up --detach postgres

@@ -1,4 +1,7 @@
-.PHONY: format format-check lint typecheck test build check clean
+.PHONY: format format-check lint typecheck test build check clean contract-generate
+
+contract-generate:
+	go tool oapi-codegen -config ../../contracts/oapi-codegen.yaml ../../contracts/openapi/v1.yaml
 
 format:
 	gofmt -w $$(find . -type f -name '*.go')
