@@ -1,7 +1,7 @@
 SHELL := /usr/bin/env bash
 
 .PHONY: bootstrap format format-check lint typecheck test build check clean \
-	db-up db-wait db-status db-down db-reset db-logs db-smoke \
+	db-up db-wait db-status db-down db-reset db-logs db-smoke db-integration-test \
 	contract-bootstrap contract-lint contract-generate contract-check
 
 bootstrap:
@@ -86,3 +86,6 @@ db-logs:
 
 db-smoke:
 	./tests/postgres/compose-smoke.sh
+
+db-integration-test:
+	$(MAKE) -C apps/api integration-test

@@ -1,4 +1,4 @@
-.PHONY: format format-check lint typecheck test build check clean contract-generate
+.PHONY: format format-check lint typecheck test integration-test build check clean contract-generate
 
 contract-generate:
 	go tool oapi-codegen -config ../../contracts/oapi-codegen.yaml ../../contracts/openapi/v1.yaml
@@ -17,6 +17,9 @@ typecheck:
 
 test:
 	go test ./...
+
+integration-test:
+	go test -tags=integration -count=1 -timeout=5m ./internal/streams
 
 build:
 	mkdir -p bin
