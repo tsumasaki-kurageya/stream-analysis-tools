@@ -1,6 +1,7 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: bootstrap format format-check lint typecheck test build check clean
+.PHONY: bootstrap format format-check lint typecheck test build check clean \
+	db-up db-wait db-status db-down db-reset db-logs db-smoke
 
 bootstrap:
 	npm --prefix apps/web ci
@@ -10,13 +11,13 @@ format:
 	$(MAKE) -C apps/web format
 	$(MAKE) -C apps/api format
 	$(MAKE) -C apps/worker format
-	./apps/web/node_modules/.bin/prettier --write README.md ".github/**/*.yml" "{contracts,migrations,tests,docs}/**/*.md"
+	./apps/web/node_modules/.bin/prettier --write README.md compose.yaml ".github/**/*.yml" "{contracts,migrations,tests,docs}/**/*.md"
 
 format-check:
 	$(MAKE) -C apps/web format-check
 	$(MAKE) -C apps/api format-check
 	$(MAKE) -C apps/worker format-check
-	./apps/web/node_modules/.bin/prettier --check README.md ".github/**/*.yml" "{contracts,migrations,tests,docs}/**/*.md"
+	./apps/web/node_modules/.bin/prettier --check README.md compose.yaml ".github/**/*.yml" "{contracts,migrations,tests,docs}/**/*.md"
 
 lint:
 	$(MAKE) -C apps/web lint
@@ -44,3 +45,27 @@ clean:
 	$(MAKE) -C apps/web clean
 	$(MAKE) -C apps/api clean
 	$(MAKE) -C apps/worker clean
+
+db-up:
+	docker compose up --detach postgres
+	./scripts/postgres-wait.sh
+
+db-wait:
+	./scripts/postgres-wait.sh
+
+db-status:
+	docker compose ps postgres
+
+db-down:
+	docker compose down
+
+db-reset:
+	docker compose down --volumes --remove-orphans
+	docker compose up --detach postgres
+	./scripts/postgres-wait.sh
+
+db-logs:
+	docker compose logs --follow postgres
+
+db-smoke:
+	./tests/postgres/compose-smoke.sh

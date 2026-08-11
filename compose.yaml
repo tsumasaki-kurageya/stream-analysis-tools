@@ -1,0 +1,29 @@
+name: stream-analysis-tools
+
+services:
+  postgres:
+    image: postgres:18.4-bookworm
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-stream_analysis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stream_analysis_local}
+      POSTGRES_DB: ${POSTGRES_DB:-stream_analysis}
+      POSTGRES_TEST_DB: ${POSTGRES_TEST_DB:-stream_analysis_test}
+      POSTGRES_INITDB_ARGS: ${POSTGRES_INITDB_ARGS:---data-checksums --encoding=UTF8}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./infrastructure/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready --username="$${POSTGRES_USER}" --dbname="$${POSTGRES_DB}"
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    shm_size: 128mb
+    stop_grace_period: 30s
+
+volumes:
+  postgres-data:

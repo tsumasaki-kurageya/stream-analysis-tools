@@ -58,3 +58,12 @@ jobs:
           cache-dependency-glob: apps/worker/uv.lock
       - run: uv sync --frozen --all-groups
       - run: make check build
+
+  postgres:
+    name: PostgreSQL
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: bash -n infrastructure/postgres/init/10-create-test-database.sh scripts/postgres-wait.sh tests/postgres/compose-smoke.sh
+      - run: shellcheck infrastructure/postgres/init/10-create-test-database.sh scripts/postgres-wait.sh tests/postgres/compose-smoke.sh
+      - run: make db-smoke
