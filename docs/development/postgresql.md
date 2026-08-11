@@ -96,6 +96,18 @@ make db-smoke
 
 The test always removes its isolated volume on exit.
 
+### Stream repository integration test
+
+Run the migration and repository contract against an ephemeral PostgreSQL 18.4 container:
+
+```sh
+make db-integration-test
+```
+
+The Testcontainers test applies the ordered up migrations twice, verifies create, idempotent upsert,
+unique YouTube video IDs, detail and newest-first list queries, and then verifies the down migration.
+It requires a running Docker daemon and removes its container after the test.
+
 ## Troubleshooting
 
 ### Port 5432 is already in use
