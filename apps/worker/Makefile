@@ -1,4 +1,4 @@
-.PHONY: sync format format-check lint typecheck test build check clean
+.PHONY: sync format format-check lint typecheck test integration-test build check clean
 
 sync:
 	uv sync --frozen --all-groups
@@ -17,7 +17,10 @@ typecheck:
 	uv run mypy src tests
 
 test:
-	uv run pytest
+	uv run pytest -m "not integration"
+
+integration-test:
+	uv run pytest -m integration
 
 build:
 	uv build

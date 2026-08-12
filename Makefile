@@ -89,3 +89,4 @@ db-smoke:
 
 db-integration-test:
 	$(MAKE) -C apps/api integration-test
+	$(MAKE) -C apps/worker integration-test

@@ -87,6 +87,15 @@ jobs:
         with:
           go-version: 1.26.5
           cache-dependency-path: apps/api/go.sum
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.13.15
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: 0.11.33
+          enable-cache: true
+          cache-dependency-glob: apps/worker/uv.lock
+      - run: uv sync --project apps/worker --frozen --all-groups
       - run: bash -n infrastructure/postgres/init/10-create-test-database.sh scripts/postgres-wait.sh tests/postgres/compose-smoke.sh
       - run: shellcheck infrastructure/postgres/init/10-create-test-database.sh scripts/postgres-wait.sh tests/postgres/compose-smoke.sh
       - run: make db-smoke
