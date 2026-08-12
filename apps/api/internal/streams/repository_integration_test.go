@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"testing"
 	"time"
 
@@ -161,12 +162,19 @@ func TestPostgresRepository(t *testing.T) {
 		t.Fatalf("expected video ID and list indexes, got %d", expectedIndexCount)
 	}
 
-	downSQL, err := os.ReadFile(filepath.Join(migrationDirectory(t), "000001_create_streams.down.sql"))
+	downMigrations, err := filepath.Glob(filepath.Join(migrationDirectory(t), "*.down.sql"))
 	if err != nil {
-		t.Fatalf("read down migration: %v", err)
+		t.Fatalf("list down migrations: %v", err)
 	}
-	if _, err := pool.Exec(ctx, string(downSQL)); err != nil {
-		t.Fatalf("apply down migration: %v", err)
+	sort.Sort(sort.Reverse(sort.StringSlice(downMigrations)))
+	for _, downMigration := range downMigrations {
+		downSQL, err := os.ReadFile(downMigration)
+		if err != nil {
+			t.Fatalf("read down migration %s: %v", filepath.Base(downMigration), err)
+		}
+		if _, err := pool.Exec(ctx, string(downSQL)); err != nil {
+			t.Fatalf("apply down migration %s: %v", filepath.Base(downMigration), err)
+		}
 	}
 	var tableRemoved bool
 	if err := pool.QueryRow(ctx, "SELECT to_regclass('stream.streams') IS NULL").Scan(&tableRemoved); err != nil {

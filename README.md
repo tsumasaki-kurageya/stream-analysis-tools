@@ -74,5 +74,6 @@ Copy `.env.example` to `.env` to override local values. See the
 [PostgreSQL development guide](docs/development/postgresql.md) for database conventions,
 shutdown, reset, and troubleshooting procedures.
 
-The Main API exposes stream metadata preview, registration, list, and detail endpoints.
-Collection and reservation behavior are implemented by later milestone issues.
+The Main API exposes stream metadata preview, registration, list, and detail endpoints. The Collection
+Worker coordinates queued jobs through PostgreSQL with exclusive claims, leases, heartbeats, and
+restart recovery. Chat acquisition and reservation behavior are implemented by later milestone issues.
