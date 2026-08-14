@@ -14,6 +14,7 @@ from time import monotonic
 from typing import Protocol
 
 _SIGKILL = 9
+_WINDOWS_PROCESS_CREATION_FLAGS = int(getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
 
 
 class ProcessTermination(StrEnum):
@@ -107,7 +108,7 @@ class SubprocessYtDlpProcess:
                 stderr=stderr,
                 shell=False,
                 start_new_session=os.name != "nt",
-                creationflags=(subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0),
+                creationflags=(_WINDOWS_PROCESS_CREATION_FLAGS if os.name == "nt" else 0),
             )
             termination = self._wait_for_process(
                 process,
