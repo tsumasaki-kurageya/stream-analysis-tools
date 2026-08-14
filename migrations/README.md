@@ -26,3 +26,7 @@ query. Run its migration and repository verification with `make db-integration-t
 `collection.collection_steps`. Active jobs are unique per stream and kind, and partial indexes support
 queued claims and expired-lease recovery. Running jobs carry a worker ID and per-claim lease token so
 stale workers cannot heartbeat, report progress, or finish after another worker reclaims the job.
+
+`000003_create_chat_messages` creates the normalized `chat.chat_messages` source of truth. Messages
+are unique by stream, source, and external message ID; timeline and collection-job indexes support
+stable browsing and provenance queries. The Worker imports this table in bounded idempotent batches.

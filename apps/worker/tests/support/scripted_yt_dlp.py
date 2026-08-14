@@ -20,6 +20,7 @@ class ScriptedRun:
     stderr: str = ""
     duration: timedelta = timedelta(milliseconds=250)
     wait_for_cancellation: bool = False
+    partial_artifact_present: bool = False
 
 
 class ScriptedYtDlpProcess:
@@ -61,6 +62,8 @@ class ScriptedYtDlpProcess:
         if script.artifact_source is not None:
             artifact_path = request.attempt_directory / "scripted-artifact.ndjson"
             copyfile(script.artifact_source, artifact_path)
+        if script.partial_artifact_present:
+            (request.attempt_directory / "incomplete.live_chat.json.part").touch()
 
         self.terminated_process_tree |= termination is not ProcessTermination.EXITED
         return YtDlpProcessResult(
@@ -70,4 +73,5 @@ class ScriptedYtDlpProcess:
             stderr=script.stderr,
             yt_dlp_version="2026.7.4",
             duration=script.duration,
+            partial_artifact_present=script.partial_artifact_present,
         )
