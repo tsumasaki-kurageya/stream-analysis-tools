@@ -88,6 +88,86 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/streams/{streamId}/collections": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Start chat-replay collection
+     * @description Creates a queued collection job, or returns the already-active job for the stream. This operation accepts no request body or collector-specific options.
+     */
+    post: operations["startCollection"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/streams/{streamId}/collections/latest": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get latest collection status
+     * @description Returns the most recently requested collection job for the stream.
+     */
+    get: operations["getLatestCollection"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/collection-jobs/{jobId}/retry": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Retry a failed collection
+     * @description Creates a new queued job only when the failed job has a stable retryable error. This operation accepts no request body or collector-specific options.
+     */
+    post: operations["retryCollection"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/streams/{streamId}/chat-messages": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List persisted chat messages
+     * @description Returns messages ordered by offset milliseconds and message ID. The opaque cursor contains only the last returned offset and ID.
+     */
+    get: operations["listChatMessages"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -147,6 +227,53 @@ export interface components {
     /** @enum {string} */
     StreamLifecycleStatus:
       "unknown" | "scheduled" | "live" | "ended" | "unavailable";
+    CollectionJob: {
+      id: string;
+      streamId: string;
+      /** @enum {string} */
+      kind: "chat_replay";
+      status: components["schemas"]["CollectionJobStatus"];
+      attempt: number;
+      /** @enum {string} */
+      currentStep?: "chat_replay";
+      /** Format: int64 */
+      processedCount: number;
+      /** Format: int64 */
+      skippedCount: number;
+      /** Format: date-time */
+      requestedAt: string;
+      /** Format: date-time */
+      startedAt?: string;
+      /** Format: date-time */
+      updatedAt: string;
+      /** Format: date-time */
+      finishedAt?: string;
+      error?: components["schemas"]["CollectionError"];
+    };
+    /** @enum {string} */
+    CollectionJobStatus:
+      "queued" | "running" | "succeeded" | "no_data" | "failed";
+    CollectionError: {
+      code: string;
+      message: string;
+      retryable: boolean;
+    };
+    ChatMessage: {
+      id: string;
+      authorChannelId?: string;
+      authorDisplayName: string;
+      messageText: string;
+      /** Format: date-time */
+      publishedAt: string;
+      /** Format: int64 */
+      offsetMilliseconds: number;
+      /** @enum {string} */
+      messageType: "text";
+    };
+    ChatMessagePage: {
+      items: components["schemas"]["ChatMessage"][];
+      nextCursor?: string;
+    };
     /** @description RFC 9457 Problem Details object with a stable product-level code. */
     ProblemDetails: {
       /**
@@ -182,7 +309,12 @@ export interface components {
       };
     };
   };
-  parameters: never;
+  parameters: {
+    /** @description Internal stream identifier. */
+    StreamId: string;
+    /** @description Internal collection job identifier. */
+    JobId: string;
+  };
   requestBodies: never;
   headers: never;
   pathItems: never;
@@ -317,6 +449,117 @@ export interface operations {
           "application/json": components["schemas"]["Stream"];
         };
       };
+      404: components["responses"]["Problem"];
+      default: components["responses"]["Problem"];
+    };
+  };
+  startCollection: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Internal stream identifier. */
+        streamId: components["parameters"]["StreamId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The new or already-active collection job. */
+      202: {
+        headers: {
+          /** @description Relative URL for polling the latest stream collection. */
+          Location?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CollectionJob"];
+        };
+      };
+      404: components["responses"]["Problem"];
+      default: components["responses"]["Problem"];
+    };
+  };
+  getLatestCollection: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Internal stream identifier. */
+        streamId: components["parameters"]["StreamId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Latest safe collection status and progress. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CollectionJob"];
+        };
+      };
+      404: components["responses"]["Problem"];
+      default: components["responses"]["Problem"];
+    };
+  };
+  retryCollection: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Internal collection job identifier. */
+        jobId: components["parameters"]["JobId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The new collection job. */
+      202: {
+        headers: {
+          /** @description Relative URL for polling the stream's latest collection. */
+          Location?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CollectionJob"];
+        };
+      };
+      404: components["responses"]["Problem"];
+      409: components["responses"]["Problem"];
+      default: components["responses"]["Problem"];
+    };
+  };
+  listChatMessages: {
+    parameters: {
+      query?: {
+        /** @description Maximum number of messages to return. */
+        limit?: number;
+        /** @description Opaque cursor returned by the previous page. */
+        cursor?: string;
+      };
+      header?: never;
+      path: {
+        /** @description Internal stream identifier. */
+        streamId: components["parameters"]["StreamId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description A stable page of chat messages. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChatMessagePage"];
+        };
+      };
+      400: components["responses"]["Problem"];
       404: components["responses"]["Problem"];
       default: components["responses"]["Problem"];
     };

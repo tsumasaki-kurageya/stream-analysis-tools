@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Stream Analysis Tools API
-  version: 0.2.0
+  version: 0.3.0
   description: HTTP contract for the stream analysis main API.
 servers:
   - url: http://localhost:8080
@@ -11,6 +11,10 @@ tags:
     description: Operational endpoints used to observe service health.
   - name: Streams
     description: YouTube stream metadata preview, registration, and retrieval.
+  - name: Collections
+    description: Background chat-replay collection orchestration and status.
+  - name: Chat
+    description: Persisted chat messages in stable stream-relative order.
 paths:
   /healthz:
     get:
@@ -150,7 +154,139 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /v1/streams/{streamId}/collections:
+    post:
+      operationId: startCollection
+      summary: Start chat-replay collection
+      description: >-
+        Creates a queued collection job, or returns the already-active job for the stream.
+        This operation accepts no request body or collector-specific options.
+      tags:
+        - Collections
+      parameters:
+        - $ref: "#/components/parameters/StreamId"
+      responses:
+        "202":
+          description: The new or already-active collection job.
+          headers:
+            Location:
+              description: Relative URL for polling the latest stream collection.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionJob"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /v1/streams/{streamId}/collections/latest:
+    get:
+      operationId: getLatestCollection
+      summary: Get latest collection status
+      description: Returns the most recently requested collection job for the stream.
+      tags:
+        - Collections
+      parameters:
+        - $ref: "#/components/parameters/StreamId"
+      responses:
+        "200":
+          description: Latest safe collection status and progress.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionJob"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /v1/collection-jobs/{jobId}/retry:
+    post:
+      operationId: retryCollection
+      summary: Retry a failed collection
+      description: >-
+        Creates a new queued job only when the failed job has a stable retryable error.
+        This operation accepts no request body or collector-specific options.
+      tags:
+        - Collections
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "202":
+          description: The new collection job.
+          headers:
+            Location:
+              description: Relative URL for polling the stream's latest collection.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionJob"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /v1/streams/{streamId}/chat-messages:
+    get:
+      operationId: listChatMessages
+      summary: List persisted chat messages
+      description: >-
+        Returns messages ordered by offset milliseconds and message ID. The opaque cursor
+        contains only the last returned offset and ID.
+      tags:
+        - Chat
+      parameters:
+        - $ref: "#/components/parameters/StreamId"
+        - name: limit
+          in: query
+          description: Maximum number of messages to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          description: Opaque cursor returned by the previous page.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 256
+      responses:
+        "200":
+          description: A stable page of chat messages.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessagePage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
 components:
+  parameters:
+    StreamId:
+      name: streamId
+      in: path
+      required: true
+      description: Internal stream identifier.
+      schema:
+        type: string
+        pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      description: Internal collection job identifier.
+      schema:
+        type: string
+        pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
   responses:
     Problem:
       description: The request could not be completed.
@@ -285,6 +421,132 @@ components:
         - live
         - ended
         - unavailable
+    CollectionJob:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - streamId
+        - kind
+        - status
+        - attempt
+        - processedCount
+        - skippedCount
+        - requestedAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+        streamId:
+          type: string
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+        kind:
+          type: string
+          enum:
+            - chat_replay
+        status:
+          $ref: "#/components/schemas/CollectionJobStatus"
+        attempt:
+          type: integer
+          minimum: 0
+        currentStep:
+          type: string
+          enum:
+            - chat_replay
+        processedCount:
+          type: integer
+          format: int64
+          minimum: 0
+        skippedCount:
+          type: integer
+          format: int64
+          minimum: 0
+        requestedAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        error:
+          $ref: "#/components/schemas/CollectionError"
+    CollectionJobStatus:
+      type: string
+      enum:
+        - queued
+        - running
+        - succeeded
+        - no_data
+        - failed
+    CollectionError:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+        - retryable
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z][A-Z0-9_]*$"
+        message:
+          type: string
+          minLength: 1
+        retryable:
+          type: boolean
+    ChatMessage:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - authorDisplayName
+        - messageText
+        - publishedAt
+        - offsetMilliseconds
+        - messageType
+      properties:
+        id:
+          type: string
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+        authorChannelId:
+          type: string
+          minLength: 1
+        authorDisplayName:
+          type: string
+          minLength: 1
+        messageText:
+          type: string
+          minLength: 1
+        publishedAt:
+          type: string
+          format: date-time
+        offsetMilliseconds:
+          type: integer
+          format: int64
+        messageType:
+          type: string
+          enum:
+            - text
+    ChatMessagePage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+        nextCursor:
+          type: string
+          minLength: 1
+          maxLength: 256
     ProblemDetails:
       type: object
       additionalProperties: true

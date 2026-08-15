@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/collections"
 	openapiv1 "github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/generated/openapiv1"
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/streams"
 )
@@ -146,6 +147,130 @@ func TestStreamAPIUsesProblemDetailsForMalformedJSONAndIdentifier(t *testing.T) 
 	assertProblem(t, identifierResponse, http.StatusBadRequest, "INVALID_REQUEST")
 }
 
+func TestCollectionAPIStartsPollsRetriesAndListsChat(t *testing.T) {
+	streamID := uuid.New()
+	jobID := uuid.New()
+	now := time.Date(2026, 8, 15, 1, 2, 3, 0, time.UTC)
+	service := &collectionServiceStub{job: collections.Job{
+		ID: jobID, StreamID: streamID, Kind: "chat_replay", Status: collections.StatusQueued,
+		RequestedAt: now, UpdatedAt: now,
+	}}
+	handler := NewHandler(nil, service)
+
+	started := performJSONRequest(
+		t,
+		handler,
+		http.MethodPost,
+		"/v1/streams/"+streamID.String()+"/collections",
+		nil,
+	)
+	if started.Code != http.StatusAccepted {
+		t.Fatalf("expected collection start status 202, got %d: %s", started.Code, started.Body.String())
+	}
+	if started.Header().Get("Location") != "/v1/streams/"+streamID.String()+"/collections/latest" {
+		t.Fatalf("unexpected collection Location %q", started.Header().Get("Location"))
+	}
+	var queued openapiv1.CollectionJob
+	decodeJSON(t, started, &queued)
+	if queued.Id != jobID.String() || queued.Status != openapiv1.CollectionJobStatus("queued") || queued.CurrentStep == nil {
+		t.Fatalf("unexpected queued collection: %+v", queued)
+	}
+
+	service.job.Status = collections.StatusSucceeded
+	polled := performJSONRequest(
+		t,
+		handler,
+		http.MethodGet,
+		"/v1/streams/"+streamID.String()+"/collections/latest",
+		nil,
+	)
+	if polled.Code != http.StatusOK {
+		t.Fatalf("expected latest status 200, got %d: %s", polled.Code, polled.Body.String())
+	}
+	var completed openapiv1.CollectionJob
+	decodeJSON(t, polled, &completed)
+	if completed.Status != openapiv1.CollectionJobStatus("no_data") || completed.CurrentStep != nil {
+		t.Fatalf("unexpected completed collection: %+v", completed)
+	}
+
+	service.job.Status = collections.StatusQueued
+	retried := performJSONRequest(
+		t,
+		handler,
+		http.MethodPost,
+		"/v1/collection-jobs/"+jobID.String()+"/retry",
+		nil,
+	)
+	if retried.Code != http.StatusAccepted {
+		t.Fatalf("expected retry status 202, got %d: %s", retried.Code, retried.Body.String())
+	}
+
+	nextCursor := "opaque-next"
+	service.page = collections.MessagePage{
+		Items: []collections.ChatMessage{{
+			ID: uuid.New(), AuthorDisplayName: "Viewer", MessageText: "hello",
+			PublishedAt: now, OffsetMilliseconds: 1234, MessageType: "text",
+		}},
+		NextCursor: &nextCursor,
+	}
+	listed := performJSONRequest(
+		t,
+		handler,
+		http.MethodGet,
+		"/v1/streams/"+streamID.String()+"/chat-messages?limit=25&cursor=previous",
+		nil,
+	)
+	if listed.Code != http.StatusOK {
+		t.Fatalf("expected chat list status 200, got %d: %s", listed.Code, listed.Body.String())
+	}
+	var page openapiv1.ChatMessagePage
+	decodeJSON(t, listed, &page)
+	if len(page.Items) != 1 || page.Items[0].OffsetMilliseconds != 1234 ||
+		page.NextCursor == nil || *page.NextCursor != nextCursor || service.limit != 25 || service.cursor != "previous" {
+		t.Fatalf("unexpected chat page: %+v, service=%+v", page, service)
+	}
+}
+
+func TestCollectionAPIRejectsCollectorSpecificOptions(t *testing.T) {
+	streamID := uuid.New()
+	service := &collectionServiceStub{job: collections.Job{ID: uuid.New(), StreamID: streamID}}
+	handler := NewHandler(nil, service)
+
+	for name, payload := range map[string]map[string]string{
+		"yt-dlp options": {"ytDlpOptions": "--cookies secret.txt"},
+		"proxy":          {"proxy": "http://user:pass@example.invalid"},
+		"cookie path":    {"cookiePath": "/tmp/cookies.txt"},
+		"output path":    {"outputPath": "/tmp/chat.json"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			response := performJSONRequest(
+				t,
+				handler,
+				http.MethodPost,
+				"/v1/streams/"+streamID.String()+"/collections",
+				payload,
+			)
+			assertProblem(t, response, http.StatusBadRequest, "INVALID_REQUEST")
+		})
+	}
+	if service.startCalls != 0 {
+		t.Fatalf("collection service received rejected options: %d calls", service.startCalls)
+	}
+}
+
+func TestCollectionAPIReturnsStableRetryConflict(t *testing.T) {
+	service := &collectionServiceStub{err: collections.ErrNotRetryable}
+	handler := NewHandler(nil, service)
+	response := performJSONRequest(
+		t,
+		handler,
+		http.MethodPost,
+		"/v1/collection-jobs/"+uuid.New().String()+"/retry",
+		nil,
+	)
+	assertProblem(t, response, http.StatusConflict, "COLLECTION_NOT_RETRYABLE")
+}
+
 func performJSONRequest(
 	t *testing.T,
 	handler http.Handler,
@@ -195,6 +320,39 @@ type apiMetadataProvider struct {
 	results []streams.Metadata
 	err     error
 	calls   int
+}
+
+type collectionServiceStub struct {
+	job        collections.Job
+	page       collections.MessagePage
+	err        error
+	limit      int
+	cursor     string
+	startCalls int
+}
+
+func (service *collectionServiceStub) Start(context.Context, uuid.UUID) (collections.Job, error) {
+	service.startCalls++
+	return service.job, service.err
+}
+
+func (service *collectionServiceStub) Latest(context.Context, uuid.UUID) (collections.Job, error) {
+	return service.job, service.err
+}
+
+func (service *collectionServiceStub) Retry(context.Context, uuid.UUID) (collections.Job, error) {
+	return service.job, service.err
+}
+
+func (service *collectionServiceStub) ListMessages(
+	_ context.Context,
+	_ uuid.UUID,
+	limit int,
+	cursor string,
+) (collections.MessagePage, error) {
+	service.limit = limit
+	service.cursor = cursor
+	return service.page, service.err
 }
 
 func (provider *apiMetadataProvider) Fetch(context.Context, string) (streams.Metadata, error) {

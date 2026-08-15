@@ -107,6 +107,8 @@ make db-integration-test
 The Testcontainers tests apply the ordered migrations and verify both application boundaries:
 
 - Main API: stream creation, idempotent upsert, uniqueness, detail, and newest-first listing.
+- Main API collection interface: idempotent job creation, retry rules, safe status polling, and
+  offset/ID chat cursor pagination.
 - Collection Worker: exclusive multi-worker claim, heartbeat renewal, expired-lease recovery,
   stale-owner rejection, terminal state transitions, progress, and safe retry with a new job.
 

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/collections"
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/database"
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/httpapi"
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/streams"
@@ -51,11 +52,12 @@ func main() {
 		log.Fatalf("configure YouTube metadata client: %v", err)
 	}
 	streamService := streams.NewService(streams.NewPostgresRepository(pool), metadataClient)
+	collectionService := collections.NewService(collections.NewPostgresRepository(pool))
 
 	address := ":" + envOrDefault("PORT", "8080")
 	server := &http.Server{
 		Addr:              address,
-		Handler:           httpapi.NewHandler(streamService),
+		Handler:           httpapi.NewHandler(streamService, collectionService),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
