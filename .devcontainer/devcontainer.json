@@ -29,7 +29,8 @@
   "forwardPorts": [5173, 8080, 5432],
   "portsAttributes": {
     "5173": {
-      "label": "Web UI"
+      "label": "Web UI",
+      "onAutoForward": "openBrowser"
     },
     "8080": {
       "label": "Main API"

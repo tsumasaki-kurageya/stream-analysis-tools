@@ -51,6 +51,21 @@ Install all dependencies:
 make bootstrap
 ```
 
+Copy the local environment file, set `YSA_YOUTUBE_API_KEY`, and start the full development stack:
+
+```sh
+cp -n .env.example .env
+make dev
+```
+
+`make dev` starts PostgreSQL, builds and starts the Main API, enables and starts the Collection
+Worker, and starts the Web UI. In a Dev Container it also handles the Docker network attachment.
+Press Ctrl+C to stop the application processes, then stop PostgreSQL when it is no longer needed:
+
+```sh
+make dev-down
+```
+
 Run every formatting, lint, type-check, test, and build gate:
 
 ```sh

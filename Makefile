@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: bootstrap format format-check lint typecheck test build check clean \
+.PHONY: bootstrap dev dev-down format format-check lint typecheck test build check clean \
 	db-up db-wait db-status db-down db-reset db-logs db-smoke db-integration-test \
 	contract-bootstrap contract-lint contract-generate contract-check benchmark-chat
 
@@ -8,6 +8,11 @@ bootstrap:
 	npm --prefix apps/web ci
 	npm --prefix contracts ci
 	uv sync --project apps/worker --frozen --all-groups
+
+dev:
+	./scripts/dev.sh
+
+dev-down: db-down
 
 format:
 	$(MAKE) -C apps/web format
