@@ -45,6 +45,8 @@ def test_subprocess_adapter_uses_controlled_argv_and_returns_the_final_artifact(
         "--write-subs",
         "--sub-langs",
         "live_chat",
+        "--match-filter",
+        "live_status !=? is_live & live_status !=? is_upcoming & live_status !=? post_live",
         "--paths",
         f"home:{attempt_directory}",
         "--paths",
@@ -190,6 +192,31 @@ def test_subprocess_adapter_classifies_unavailable_video_without_exposing_stderr
     assert "Video unavailable" not in result.stderr
 
 
+def test_subprocess_adapter_classifies_filtered_live_source_without_exposing_stdout(
+    tmp_path: Path,
+) -> None:
+    filtered = write_filtered_live_script(tmp_path / "filtered_live.py")
+    process = SubprocessYtDlpProcess(
+        command_prefix=(sys.executable, str(filtered)),
+        poll_interval=0.01,
+    )
+
+    result = process.run(
+        YtDlpProcessRequest(
+            canonical_youtube_url="https://www.youtube.com/watch?v=fixture",
+            attempt_directory=tmp_path / "attempt",
+            deadline=datetime.now(UTC) + timedelta(seconds=5),
+        ),
+        Event(),
+    )
+
+    assert result.exit_code == 0
+    assert result.artifact_path is None
+    assert result.failure_reason is YtDlpFailureReason.SOURCE_NOT_READY
+    assert result.stderr == ""
+    assert "does not pass filter" not in repr(result)
+
+
 def test_subprocess_adapter_observes_exactly_one_process_start(tmp_path: Path) -> None:
     fake_yt_dlp = write_success_script(tmp_path / "fake_yt_dlp.py")
     process_ids: list[int] = []
@@ -288,6 +315,16 @@ import sys
 
 sys.stderr.write("ERROR: [youtube] fixture: Video unavailable")
 raise SystemExit(1)
+""".lstrip(),
+        encoding="utf-8",
+    )
+    return path
+
+
+def write_filtered_live_script(path: Path) -> Path:
+    path.write_text(
+        """
+print("[download] fixture does not pass filter (live_status !=? is_live)")
 """.lstrip(),
         encoding="utf-8",
     )

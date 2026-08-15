@@ -23,14 +23,14 @@ key, cookie, proxy value, yt-dlp stderr, or chat body is included.
 
 ## Real-data collection
 
-| Case                             | Result  | Evidence                                                                                                                         |
-| -------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| short replay `R3l34mHWmas`       | PASS    | attempt 1; 4.44 s job time; 1,027,940-byte artifact; 511 saved; 22 skipped                                                       |
-| high-volume replay `I-J11Da5ONY` | PASS    | attempt 1; 203.07 s job time; 141,659,603-byte artifact; 48,677 saved; 5,712 skipped                                             |
-| replay unavailable `o8NiE3XMPrM` | PASS    | attempt 1; 1.57 s; no artifact; zero saved/skipped; public status maps to `no_data`                                              |
-| unavailable `aaaaaaaaaaa`        | PASS    | current pin recheck: bounded failure in 1.81 s; safe non-retryable `CHAT_REPLAY_NOT_AVAILABLE`; upstream text absent; temp clean |
-| access denied `BEEgdCrsxdM`      | PASS    | current pin recheck: bounded failure in 1.81 s; safe non-retryable `YOUTUBE_ACCESS_DENIED`; upstream text absent; temp clean     |
-| archive not ready                | NOT RUN | public live candidate no longer produced the expected live/not-ready state; deterministic controlled case is still required      |
+| Case                             | Result              | Evidence                                                                                                                              |
+| -------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| short replay `R3l34mHWmas`       | PASS                | attempt 1; 4.44 s job time; 1,027,940-byte artifact; 511 saved; 22 skipped                                                            |
+| high-volume replay `I-J11Da5ONY` | PASS                | attempt 1; 203.07 s job time; 141,659,603-byte artifact; 48,677 saved; 5,712 skipped                                                  |
+| replay unavailable `o8NiE3XMPrM` | PASS                | attempt 1; 1.57 s; no artifact; zero saved/skipped; public status maps to `no_data`                                                   |
+| unavailable `aaaaaaaaaaa`        | PASS                | current pin recheck: bounded failure in 1.81 s; safe non-retryable `CHAT_REPLAY_NOT_AVAILABLE`; upstream text absent; temp clean      |
+| access denied `BEEgdCrsxdM`      | PASS                | current pin recheck: bounded failure in 1.81 s; safe non-retryable `YOUTUBE_ACCESS_DENIED`; upstream text absent; temp clean          |
+| archive not ready `fb7eZN1r80E`  | PASS (uncontrolled) | current public live source; retryable `SOURCE_NOT_READY` in 2.21 s; zero saved; temp clean; controlled target evidence still required |
 
 The short case ran again after recovery and reported all 511 messages as duplicates, leaving the
 stored count unchanged. The high-volume stored total plus short total was 49,188 messages.

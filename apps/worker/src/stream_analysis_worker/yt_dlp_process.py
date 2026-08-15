@@ -28,6 +28,7 @@ class YtDlpFailureReason(StrEnum):
 
     ACCESS_DENIED = "access_denied"
     REPLAY_NOT_AVAILABLE = "replay_not_available"
+    SOURCE_NOT_READY = "source_not_ready"
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,15 +107,19 @@ class SubprocessYtDlpProcess:
         request.attempt_directory.mkdir(parents=True, exist_ok=True)
         temp_directory = request.attempt_directory / "temp"
         temp_directory.mkdir(exist_ok=True)
+        stdout_path = request.attempt_directory / "yt-dlp.stdout"
         stderr_path = request.attempt_directory / "yt-dlp.stderr"
         arguments = self._arguments(request, temp_directory=temp_directory)
         started_at = monotonic()
 
-        with stderr_path.open("wb") as stderr_file:
+        with (
+            stdout_path.open("wb") as stdout_file,
+            stderr_path.open("wb") as stderr_file,
+        ):
             process = subprocess.Popen(
                 arguments,
                 stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
+                stdout=stdout_file,
                 stderr=stderr_file,
                 shell=False,
                 start_new_session=os.name != "nt",
@@ -134,6 +139,12 @@ class SubprocessYtDlpProcess:
             stderr_path,
             limit=self._stderr_limit_bytes,
         )
+        stdout_failure_reason = _read_stdout_failure_reason(
+            stdout_path,
+            limit=self._stderr_limit_bytes,
+        )
+        if failure_reason is None and stdout_failure_reason is not None:
+            failure_reason = stdout_failure_reason
         return YtDlpProcessResult(
             exit_code=process.returncode,
             termination=termination,
@@ -142,7 +153,11 @@ class SubprocessYtDlpProcess:
             yt_dlp_version=version("yt-dlp"),
             duration=timedelta(seconds=monotonic() - started_at),
             partial_artifact_present=any(temp_directory.rglob("*.part")),
-            failure_reason=(failure_reason if process.returncode != 0 else None),
+            failure_reason=(
+                failure_reason
+                if process.returncode != 0 or failure_reason is YtDlpFailureReason.SOURCE_NOT_READY
+                else None
+            ),
         )
 
     def _arguments(
@@ -160,6 +175,8 @@ class SubprocessYtDlpProcess:
             "--write-subs",
             "--sub-langs",
             "live_chat",
+            "--match-filter",
+            "live_status !=? is_live & live_status !=? is_upcoming & live_status !=? post_live",
             "--paths",
             f"home:{request.attempt_directory}",
             "--paths",
@@ -250,6 +267,23 @@ def _classify_failure(stderr: bytes) -> YtDlpFailureReason | None:
         return YtDlpFailureReason.ACCESS_DENIED
     if "video unavailable" in normalized:
         return YtDlpFailureReason.REPLAY_NOT_AVAILABLE
+    return None
+
+
+def _read_stdout_failure_reason(
+    path: Path,
+    *,
+    limit: int,
+) -> YtDlpFailureReason | None:
+    with path.open("rb") as contents:
+        size = contents.seek(0, os.SEEK_END)
+        if size == 0:
+            return None
+        contents.seek(max(0, size - limit))
+        stdout_tail = contents.read()
+    normalized = stdout_tail.decode("utf-8", errors="ignore").casefold()
+    if "does not pass filter" in normalized:
+        return YtDlpFailureReason.SOURCE_NOT_READY
     return None
 
 

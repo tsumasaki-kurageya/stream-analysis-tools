@@ -123,6 +123,12 @@ class YtDlpChatReplayCollector:
                     retryable=False,
                     safe_message="Chat replay is not available for this stream.",
                 )
+            if process_result.failure_reason is YtDlpFailureReason.SOURCE_NOT_READY:
+                raise CollectionFailure(
+                    code=CollectionErrorCode.SOURCE_NOT_READY,
+                    retryable=True,
+                    safe_message="The stream archive is not ready yet.",
+                )
             if process_result.exit_code != 0:
                 raise CollectionFailure(
                     code=CollectionErrorCode.YTDLP_PROCESS_FAILED,

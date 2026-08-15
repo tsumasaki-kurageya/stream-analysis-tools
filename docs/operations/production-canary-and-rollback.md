@@ -65,14 +65,14 @@ Run cases sequentially. Record the source category, job ID, final public status,
 duration, aggregate counts, artifact bytes, yt-dlp version, and stable error code. Do not record chat
 content.
 
-| Case               | Required outcome                                                            |
-| ------------------ | --------------------------------------------------------------------------- |
-| Short replay       | succeeds; stored count equals saved count                                   |
-| High-volume replay | succeeds within the release timeout and memory/batch gates                  |
-| Replay unavailable | finishes as public `no_data` with no artifact                               |
-| Source unavailable | bounded non-retryable `CHAT_REPLAY_NOT_AVAILABLE`; no upstream text leaks   |
-| Access denied      | bounded non-retryable `YOUTUBE_ACCESS_DENIED`; no upstream text leaks       |
-| Archive not ready  | no premature collection; reservation remains waiting and retries monitoring |
+| Case               | Required outcome                                                                 |
+| ------------------ | -------------------------------------------------------------------------------- |
+| Short replay       | succeeds; stored count equals saved count                                        |
+| High-volume replay | succeeds within the release timeout and memory/batch gates                       |
+| Replay unavailable | finishes as public `no_data` with no artifact                                    |
+| Source unavailable | bounded non-retryable `CHAT_REPLAY_NOT_AVAILABLE`; no upstream text leaks        |
+| Access denied      | bounded non-retryable `YOUTUBE_ACCESS_DENIED`; no upstream text leaks            |
+| Archive not ready  | retryable `SOURCE_NOT_READY`; reservation remains waiting and retries monitoring |
 
 After successful collection, exercise the M1-M4 Web path: preview/register, collection status, chat
 list, player seek, search seek, reservation creation, automatic collection, and completed-reservation
