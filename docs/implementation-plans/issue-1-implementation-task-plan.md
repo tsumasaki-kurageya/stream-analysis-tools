@@ -127,42 +127,42 @@ Issueの着手は前倒しできるが、次の条件を満たすまでマイル
 
 ### M0
 
-- [ ] [#3 ADR](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/3)
-- [ ] [#2 Scaffold](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/2)
-- [ ] [#7 PostgreSQL](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/7)
-- [ ] [#4 OpenAPI/codegen](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/4)
+- [x] [#3 ADR](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/3)
+- [x] [#2 Scaffold](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/2)
+- [x] [#7 PostgreSQL](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/7)
+- [x] [#4 OpenAPI/codegen](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/4)
 
 ### M1
 
-- [ ] [#5 Stream schema/repository](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/5)
-- [ ] [#6 Metadata preview/registration](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/6)
-- [ ] [#9 Registration/list/detail UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/9)
+- [x] [#5 Stream schema/repository](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/5)
+- [x] [#6 Metadata preview/registration](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/6)
+- [x] [#9 Registration/list/detail UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/9)
 
 ### M2
 
-- [ ] [#8 Collection job/claim loop](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/8)
-- [ ] [#11 yt-dlp characterization/version pin](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/11)
-- [ ] [#10 Collector interface tests](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/10)
-- [ ] [#12 Adapter/parser/bulk upsert](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/12)
-- [ ] [#13 Collection/status/chat API](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/13)
-- [ ] [#14 Collection progress/chat UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/14)
-- [ ] [#16 Direct yt-dlp benchmark](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/16)
+- [x] [#8 Collection job/claim loop](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/8)
+- [x] [#11 yt-dlp characterization/version pin](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/11)
+- [x] [#10 Collector interface tests](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/10)
+- [x] [#12 Adapter/parser/bulk upsert](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/12)
+- [x] [#13 Collection/status/chat API](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/13)
+- [x] [#14 Collection progress/chat UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/14)
+- [x] [#16 Direct yt-dlp benchmark](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/16)
 
 ### M3
 
-- [ ] [#17 Player synchronization/seek](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/17)
-- [ ] [#15 PostgreSQL chat search](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/15)
-- [ ] [#18 Synchronized exploration UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/18)
+- [x] [#17 Player synchronization/seek](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/17)
+- [x] [#15 PostgreSQL chat search](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/15)
+- [x] [#18 Synchronized exploration UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/18)
 
 ### M4
 
-- [ ] [#19 Reservation schema/state machine](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/19)
-- [ ] [#20 Reservation monitor/job creation](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/20)
-- [ ] [#23 Reservation UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/23)
+- [x] [#19 Reservation schema/state machine](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/19)
+- [x] [#20 Reservation monitor/job creation](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/20)
+- [x] [#23 Reservation UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/23)
 
 ### M4.1
 
-- [ ] [#21 Observability/redaction/cleanup](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/21)
+- [x] [#21 Observability/redaction/cleanup](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/21)
 - [ ] [#22 Production canary/rollback](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/22)
 
 ## 8. 変更時の更新ルール
