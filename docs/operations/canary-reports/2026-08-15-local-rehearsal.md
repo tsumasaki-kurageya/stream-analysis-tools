@@ -23,14 +23,14 @@ key, cookie, proxy value, yt-dlp stderr, or chat body is included.
 
 ## Real-data collection
 
-| Case                             | Result         | Evidence                                                                                                                    |
-| -------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| short replay `R3l34mHWmas`       | PASS           | attempt 1; 4.44 s job time; 1,027,940-byte artifact; 511 saved; 22 skipped                                                  |
-| high-volume replay `I-J11Da5ONY` | PASS           | attempt 1; 203.07 s job time; 141,659,603-byte artifact; 48,677 saved; 5,712 skipped                                        |
-| replay unavailable `o8NiE3XMPrM` | PASS           | attempt 1; 1.57 s; no artifact; zero saved/skipped; public status maps to `no_data`                                         |
-| unavailable `aaaaaaaaaaa`        | PASS with risk | bounded failure in 1.07 s; safe `YTDLP_PROCESS_FAILED`; upstream text absent                                                |
-| access denied `BEEgdCrsxdM`      | PASS with risk | bounded failure in 0.67 s; safe `YTDLP_PROCESS_FAILED`; upstream text absent                                                |
-| archive not ready                | NOT RUN        | public live candidate no longer produced the expected live/not-ready state; deterministic controlled case is still required |
+| Case                             | Result         | Evidence                                                                                                                     |
+| -------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| short replay `R3l34mHWmas`       | PASS           | attempt 1; 4.44 s job time; 1,027,940-byte artifact; 511 saved; 22 skipped                                                   |
+| high-volume replay `I-J11Da5ONY` | PASS           | attempt 1; 203.07 s job time; 141,659,603-byte artifact; 48,677 saved; 5,712 skipped                                         |
+| replay unavailable `o8NiE3XMPrM` | PASS           | attempt 1; 1.57 s; no artifact; zero saved/skipped; public status maps to `no_data`                                          |
+| unavailable `aaaaaaaaaaa`        | PASS with risk | bounded failure in 1.07 s; safe `YTDLP_PROCESS_FAILED`; upstream text absent                                                 |
+| access denied `BEEgdCrsxdM`      | PASS           | current pin recheck: bounded failure in 1.81 s; safe non-retryable `YOUTUBE_ACCESS_DENIED`; upstream text absent; temp clean |
+| archive not ready                | NOT RUN        | public live candidate no longer produced the expected live/not-ready state; deterministic controlled case is still required  |
 
 The short case ran again after recovery and reported all 511 messages as duplicates, leaving the
 stored count unchanged. The high-volume stored total plus short total was 49,188 messages.
@@ -64,8 +64,9 @@ stored count unchanged. The high-volume stored total plus short total was 49,188
    run the M1 and M4 browser paths without copying the value into evidence.
 3. **Release owner:** repeat the characterized yt-dlp `2026.6.9` rollback in the target environment;
    local evidence does not replace the production gate.
-4. **Worker owner:** add stable classification for unavailable/access-denied outcomes if operators
-   need distinct remediation; both currently collapse safely to `YTDLP_PROCESS_FAILED`.
+4. **Worker owner:** add stable classification for the synthetic unavailable outcome if operators
+   need distinct remediation; unknown yt-dlp failures still safely fall back to
+   `YTDLP_PROCESS_FAILED`.
 5. **QA owner:** select a controlled scheduled/live stream and complete archive-not-ready plus full
    reservation-to-collection evidence.
 

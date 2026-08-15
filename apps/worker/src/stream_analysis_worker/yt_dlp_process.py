@@ -23,6 +23,12 @@ class ProcessTermination(StrEnum):
     CANCELLED = "cancelled"
 
 
+class YtDlpFailureReason(StrEnum):
+    """Safe, allowlisted interpretation of pinned yt-dlp failure output."""
+
+    ACCESS_DENIED = "access_denied"
+
+
 @dataclass(frozen=True, slots=True)
 class YtDlpProcessRequest:
     canonical_youtube_url: str
@@ -45,6 +51,7 @@ class YtDlpProcessResult:
     yt_dlp_version: str
     duration: timedelta
     partial_artifact_present: bool = False
+    failure_reason: YtDlpFailureReason | None = None
 
     def __post_init__(self) -> None:
         if not self.yt_dlp_version:
@@ -102,12 +109,12 @@ class SubprocessYtDlpProcess:
         arguments = self._arguments(request, temp_directory=temp_directory)
         started_at = monotonic()
 
-        with stderr_path.open("wb") as stderr:
+        with stderr_path.open("wb") as stderr_file:
             process = subprocess.Popen(
                 arguments,
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
-                stderr=stderr,
+                stderr=stderr_file,
                 shell=False,
                 start_new_session=os.name != "nt",
                 creationflags=(_WINDOWS_PROCESS_CREATION_FLAGS if os.name == "nt" else 0),
@@ -122,14 +129,19 @@ class SubprocessYtDlpProcess:
 
         artifacts = sorted(request.attempt_directory.glob("*.live_chat.json"))
         artifact_path = artifacts[0] if len(artifacts) == 1 else None
+        stderr, failure_reason = _read_failure_details(
+            stderr_path,
+            limit=self._stderr_limit_bytes,
+        )
         return YtDlpProcessResult(
             exit_code=process.returncode,
             termination=termination,
             artifact_path=artifact_path,
-            stderr=_read_tail(stderr_path, limit=self._stderr_limit_bytes),
+            stderr=stderr,
             yt_dlp_version=version("yt-dlp"),
             duration=timedelta(seconds=monotonic() - started_at),
             partial_artifact_present=any(temp_directory.rglob("*.part")),
+            failure_reason=(failure_reason if process.returncode != 0 else None),
         )
 
     def _arguments(
@@ -211,14 +223,31 @@ class SubprocessYtDlpProcess:
             process.wait()
 
 
-def _read_tail(path: Path, *, limit: int) -> str:
+def _read_failure_details(
+    path: Path,
+    *,
+    limit: int,
+) -> tuple[str, YtDlpFailureReason | None]:
     with path.open("rb") as contents:
         size = contents.seek(0, os.SEEK_END)
         if size == 0:
-            return ""
+            return "", None
         contents.seek(max(0, size - limit))
-        contents.read()
-        return "[REDACTED STDERR]"
+        stderr_tail = contents.read()
+    return "[REDACTED STDERR]", _classify_failure(stderr_tail)
+
+
+def _classify_failure(stderr: bytes) -> YtDlpFailureReason | None:
+    normalized = stderr.decode("utf-8", errors="ignore").casefold()
+    access_denied_markers = (
+        "private video",
+        "members-only content",
+        "join this channel to get access",
+        "sign in to confirm your age",
+    )
+    if any(marker in normalized for marker in access_denied_markers):
+        return YtDlpFailureReason.ACCESS_DENIED
+    return None
 
 
 def _signal_process_group(pid: int, signal_number: int) -> None:

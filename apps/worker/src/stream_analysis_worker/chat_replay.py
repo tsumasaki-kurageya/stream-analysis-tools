@@ -26,6 +26,7 @@ from stream_analysis_worker.observability import (
 )
 from stream_analysis_worker.yt_dlp_process import (
     ProcessTermination,
+    YtDlpFailureReason,
     YtDlpProcessAdapter,
     YtDlpProcessRequest,
 )
@@ -110,6 +111,12 @@ class YtDlpChatReplayCollector:
                 )
             if process_result.termination is ProcessTermination.CANCELLED:
                 raise CollectionCancelled("chat replay collection was cancelled")
+            if process_result.failure_reason is YtDlpFailureReason.ACCESS_DENIED:
+                raise CollectionFailure(
+                    code=CollectionErrorCode.YOUTUBE_ACCESS_DENIED,
+                    retryable=False,
+                    safe_message="YouTube denied access to this video.",
+                )
             if process_result.exit_code != 0:
                 raise CollectionFailure(
                     code=CollectionErrorCode.YTDLP_PROCESS_FAILED,

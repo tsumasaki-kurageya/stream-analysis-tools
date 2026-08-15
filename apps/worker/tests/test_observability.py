@@ -23,7 +23,12 @@ from stream_analysis_worker.observability import (
     redact_text,
 )
 from stream_analysis_worker.worker import ClaimLoop, JobResult
-from stream_analysis_worker.yt_dlp_process import YtDlpProcessRequest, YtDlpProcessResult
+from stream_analysis_worker.yt_dlp_process import (
+    ProcessTermination,
+    YtDlpFailureReason,
+    YtDlpProcessRequest,
+    YtDlpProcessResult,
+)
 
 
 def test_collection_metric_contains_only_safe_operational_fields() -> None:
@@ -148,6 +153,36 @@ def test_collector_emits_safe_failure_metric_and_cleans_attempt(tmp_path: Path) 
     assert list(tmp_path.iterdir()) == []
 
 
+def test_collector_maps_access_denied_to_a_safe_non_retryable_failure(
+    tmp_path: Path,
+) -> None:
+    output = io.StringIO()
+    collector = YtDlpChatReplayCollector(
+        process=AccessDeniedProcess(),
+        messages=UnusedMessageRepository(),
+        attempt_root=tmp_path,
+        metric_sink=JsonMetricSink(output),
+    )
+    request = CollectionRequest(
+        collection_job_id=UUID("20000000-0000-0000-0000-000000000001"),
+        stream_id=UUID("10000000-0000-0000-0000-000000000001"),
+        canonical_youtube_url="https://www.youtube.com/watch?v=fixture",
+        attempt=1,
+        deadline=datetime.now(UTC) + timedelta(minutes=1),
+    )
+
+    with pytest.raises(CollectionFailure) as caught:
+        collector.collect(request, Event())
+
+    assert caught.value.code is CollectionErrorCode.YOUTUBE_ACCESS_DENIED
+    assert caught.value.retryable is False
+    assert caught.value.safe_message == "YouTube denied access to this video."
+    assert "Private video" not in str(caught.value)
+    event = json.loads(output.getvalue().splitlines()[-1])
+    assert event["error_code"] == "YOUTUBE_ACCESS_DENIED"
+    assert list(tmp_path.iterdir()) == []
+
+
 def test_collector_classifies_low_disk_capacity_without_starting_process(
     tmp_path: Path,
 ) -> None:
@@ -220,6 +255,20 @@ class FailingProcess:
     def run(self, request: YtDlpProcessRequest, cancellation: Event) -> YtDlpProcessResult:
         del request, cancellation
         raise RuntimeError(" ".join(self.secrets))
+
+
+class AccessDeniedProcess:
+    def run(self, request: YtDlpProcessRequest, cancellation: Event) -> YtDlpProcessResult:
+        del request, cancellation
+        return YtDlpProcessResult(
+            exit_code=1,
+            termination=ProcessTermination.EXITED,
+            artifact_path=None,
+            stderr="[REDACTED STDERR]",
+            yt_dlp_version="2026.7.4",
+            duration=timedelta(milliseconds=250),
+            failure_reason=YtDlpFailureReason.ACCESS_DENIED,
+        )
 
 
 class UnusedMessageRepository:

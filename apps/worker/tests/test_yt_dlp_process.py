@@ -11,6 +11,7 @@ from time import sleep
 from stream_analysis_worker.yt_dlp_process import (
     ProcessTermination,
     SubprocessYtDlpProcess,
+    YtDlpFailureReason,
     YtDlpProcessRequest,
 )
 
@@ -138,6 +139,31 @@ def test_subprocess_adapter_bounds_captured_stderr(tmp_path: Path) -> None:
 
     assert result.exit_code == 1
     assert result.stderr == "[REDACTED STDERR]"
+    assert result.failure_reason is None
+
+
+def test_subprocess_adapter_classifies_private_video_without_exposing_stderr(
+    tmp_path: Path,
+) -> None:
+    failure = write_private_video_script(tmp_path / "private_video.py")
+    process = SubprocessYtDlpProcess(
+        command_prefix=(sys.executable, str(failure)),
+        poll_interval=0.01,
+    )
+
+    result = process.run(
+        YtDlpProcessRequest(
+            canonical_youtube_url="https://www.youtube.com/watch?v=fixture",
+            attempt_directory=tmp_path / "attempt",
+            deadline=datetime.now(UTC) + timedelta(seconds=5),
+        ),
+        Event(),
+    )
+
+    assert result.exit_code == 1
+    assert result.failure_reason is YtDlpFailureReason.ACCESS_DENIED
+    assert result.stderr == "[REDACTED STDERR]"
+    assert "Private video" not in result.stderr
 
 
 def test_subprocess_adapter_observes_exactly_one_process_start(tmp_path: Path) -> None:
@@ -211,6 +237,19 @@ sys.stderr.write(
     "continuation=raw-continuation "
     "private-message-content"
 )
+raise SystemExit(1)
+""".lstrip(),
+        encoding="utf-8",
+    )
+    return path
+
+
+def write_private_video_script(path: Path) -> Path:
+    path.write_text(
+        """
+import sys
+
+sys.stderr.write("ERROR: [youtube] fixture: Private video. Sign in if you've been granted access")
 raise SystemExit(1)
 """.lstrip(),
         encoding="utf-8",

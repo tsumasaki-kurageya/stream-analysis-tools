@@ -7,6 +7,7 @@ from threading import Event
 
 from stream_analysis_worker.yt_dlp_process import (
     ProcessTermination,
+    YtDlpFailureReason,
     YtDlpProcessRequest,
     YtDlpProcessResult,
 )
@@ -21,6 +22,7 @@ class ScriptedRun:
     duration: timedelta = timedelta(milliseconds=250)
     wait_for_cancellation: bool = False
     partial_artifact_present: bool = False
+    failure_reason: YtDlpFailureReason | None = None
 
 
 class ScriptedYtDlpProcess:
@@ -74,4 +76,5 @@ class ScriptedYtDlpProcess:
             yt_dlp_version="2026.7.4",
             duration=script.duration,
             partial_artifact_present=script.partial_artifact_present,
+            failure_reason=script.failure_reason,
         )
