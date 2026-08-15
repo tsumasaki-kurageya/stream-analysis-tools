@@ -34,6 +34,7 @@ type CollectionService interface {
 	Latest(context.Context, uuid.UUID) (collections.Job, error)
 	Retry(context.Context, uuid.UUID) (collections.Job, error)
 	ListMessages(context.Context, uuid.UUID, int, string) (collections.MessagePage, error)
+	SearchMessages(context.Context, uuid.UUID, string, int, string) (collections.MessagePage, error)
 }
 
 type server struct {
@@ -267,6 +268,49 @@ func (server *server) ListChatMessages(
 		})
 	}
 	return openapiv1.ListChatMessages200JSONResponse{
+		Items: items, NextCursor: page.NextCursor,
+	}, nil
+}
+
+func (server *server) SearchChatMessages(
+	ctx context.Context,
+	request openapiv1.SearchChatMessagesRequestObject,
+) (openapiv1.SearchChatMessagesResponseObject, error) {
+	streamID, err := uuid.Parse(string(request.StreamId))
+	if err != nil {
+		problem := requestProblem()
+		return openapiv1.SearchChatMessagesdefaultApplicationProblemPlusJSONResponse{
+			Body: problem, StatusCode: problem.Status,
+		}, nil
+	}
+	limit := collections.DefaultMessageLimit
+	if request.Params.Limit != nil {
+		limit = *request.Params.Limit
+	}
+	cursor := ""
+	if request.Params.Cursor != nil {
+		cursor = *request.Params.Cursor
+	}
+	page, err := server.collections.SearchMessages(ctx, streamID, request.Params.Q, limit, cursor)
+	if err != nil {
+		problem, status := collectionProblemFor(err)
+		return openapiv1.SearchChatMessagesdefaultApplicationProblemPlusJSONResponse{
+			Body: problem, StatusCode: status,
+		}, nil
+	}
+	items := make([]openapiv1.ChatMessage, 0, len(page.Items))
+	for _, item := range page.Items {
+		items = append(items, openapiv1.ChatMessage{
+			Id:                 item.ID.String(),
+			AuthorChannelId:    item.AuthorChannelID,
+			AuthorDisplayName:  item.AuthorDisplayName,
+			MessageText:        item.MessageText,
+			PublishedAt:        item.PublishedAt,
+			OffsetMilliseconds: item.OffsetMilliseconds,
+			MessageType:        openapiv1.ChatMessageMessageType(item.MessageType),
+		})
+	}
+	return openapiv1.SearchChatMessages200JSONResponse{
 		Items: items, NextCursor: page.NextCursor,
 	}, nil
 }

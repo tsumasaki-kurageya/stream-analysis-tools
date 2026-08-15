@@ -109,10 +109,20 @@ The Testcontainers tests apply the ordered migrations and verify both applicatio
 - Main API: stream creation, idempotent upsert, uniqueness, detail, and newest-first listing.
 - Main API collection interface: idempotent job creation, retry rules, safe status polling, and
   offset/ID chat cursor pagination.
+- Main API chat search: stream isolation, case-insensitive literal partial matching, stable
+  offset/ID pagination, and trigram-index query-plan selection on representative data.
 - Collection Worker: exclusive multi-worker claim, heartbeat renewal, expired-lease recovery,
   stale-owner rejection, terminal state transitions, progress, and safe retry with a new job.
 
 They require a running Docker daemon and remove their containers after the test.
+
+### Chat search query-plan evidence
+
+Migration `000005_add_chat_search_trigram_index` adds the `pg_trgm` GIN index used by literal
+partial-match searches. The API integration test loads 50,000 representative messages, runs
+`ANALYZE`, and verifies that `EXPLAIN` selects `chat_messages_message_text_trgm_idx` for a selective
+search while the existing `(stream_id, offset_milliseconds, id)` index continues to support stable
+timeline ordering.
 
 ## Troubleshooting
 

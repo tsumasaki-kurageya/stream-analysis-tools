@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Stream Analysis Tools API
-  version: 0.3.0
+  version: 0.4.0
   description: HTTP contract for the stream analysis main API.
 servers:
   - url: http://localhost:8080
@@ -259,6 +259,55 @@ paths:
       responses:
         "200":
           description: A stable page of chat messages.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessagePage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /v1/streams/{streamId}/chat-search:
+    get:
+      operationId: searchChatMessages
+      summary: Search persisted chat messages
+      description: >-
+        Returns stream-scoped messages whose text contains the query, using a
+        case-insensitive literal partial match. Results are ordered by offset
+        milliseconds and message ID. The opaque cursor contains only the last
+        returned offset and ID.
+      tags:
+        - Chat
+      parameters:
+        - $ref: "#/components/parameters/StreamId"
+        - name: q
+          in: query
+          required: true
+          description: Literal text to find within a chat message.
+          schema:
+            type: string
+            minLength: 3
+            maxLength: 100
+        - name: limit
+          in: query
+          description: Maximum number of matching messages to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          description: Opaque cursor returned by the previous search page.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 256
+      responses:
+        "200":
+          description: A stable page of matching chat messages.
           content:
             application/json:
               schema:

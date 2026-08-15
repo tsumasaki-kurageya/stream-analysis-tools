@@ -229,6 +229,24 @@ func TestCollectionAPIStartsPollsRetriesAndListsChat(t *testing.T) {
 		page.NextCursor == nil || *page.NextCursor != nextCursor || service.limit != 25 || service.cursor != "previous" {
 		t.Fatalf("unexpected chat page: %+v, service=%+v", page, service)
 	}
+
+	searched := performJSONRequest(
+		t,
+		handler,
+		http.MethodGet,
+		"/v1/streams/"+streamID.String()+"/chat-search?q=hello&limit=25&cursor=previous",
+		nil,
+	)
+	if searched.Code != http.StatusOK {
+		t.Fatalf("expected chat search status 200, got %d: %s", searched.Code, searched.Body.String())
+	}
+	var searchPage openapiv1.ChatMessagePage
+	decodeJSON(t, searched, &searchPage)
+	if len(searchPage.Items) != 1 || searchPage.Items[0].OffsetMilliseconds != 1234 ||
+		searchPage.NextCursor == nil || *searchPage.NextCursor != nextCursor ||
+		service.query != "hello" || service.limit != 25 || service.cursor != "previous" {
+		t.Fatalf("unexpected chat search page: %+v", searchPage)
+	}
 }
 
 func TestCollectionAPIRejectsCollectorSpecificOptions(t *testing.T) {
@@ -328,6 +346,7 @@ type collectionServiceStub struct {
 	err        error
 	limit      int
 	cursor     string
+	query      string
 	startCalls int
 }
 
@@ -350,6 +369,19 @@ func (service *collectionServiceStub) ListMessages(
 	limit int,
 	cursor string,
 ) (collections.MessagePage, error) {
+	service.limit = limit
+	service.cursor = cursor
+	return service.page, service.err
+}
+
+func (service *collectionServiceStub) SearchMessages(
+	_ context.Context,
+	_ uuid.UUID,
+	query string,
+	limit int,
+	cursor string,
+) (collections.MessagePage, error) {
+	service.query = query
 	service.limit = limit
 	service.cursor = cursor
 	return service.page, service.err

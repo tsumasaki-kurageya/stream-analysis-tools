@@ -300,6 +300,18 @@ type ListChatMessagesParams struct {
 	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
 }
 
+// SearchChatMessagesParams defines parameters for SearchChatMessages.
+type SearchChatMessagesParams struct {
+	// Q Literal text to find within a chat message.
+	Q string `form:"q" json:"q"`
+
+	// Limit Maximum number of matching messages to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Cursor Opaque cursor returned by the previous search page.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
 // CreateStreamJSONRequestBody defines body for CreateStream for application/json ContentType.
 type CreateStreamJSONRequestBody = StreamURLInput
 
@@ -464,6 +476,9 @@ type ServerInterface interface {
 	// ListChatMessages List persisted chat messages
 	// (GET /v1/streams/{streamId}/chat-messages)
 	ListChatMessages(w http.ResponseWriter, r *http.Request, streamId StreamId, params ListChatMessagesParams)
+	// SearchChatMessages Search persisted chat messages
+	// (GET /v1/streams/{streamId}/chat-search)
+	SearchChatMessages(w http.ResponseWriter, r *http.Request, streamId StreamId, params SearchChatMessagesParams)
 	// StartCollection Start chat-replay collection
 	// (POST /v1/streams/{streamId}/collections)
 	StartCollection(w http.ResponseWriter, r *http.Request, streamId StreamId)
@@ -676,6 +691,74 @@ func (siw *ServerInterfaceWrapper) ListChatMessages(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r)
 }
 
+// SearchChatMessages operation middleware
+func (siw *ServerInterfaceWrapper) SearchChatMessages(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "streamId" -------------
+	var streamId StreamId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "streamId", r.PathValue("streamId"), &streamId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "streamId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params SearchChatMessagesParams
+
+	// ------------- Required query parameter "q" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "q", r.URL.Query(), &params.Q, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "q"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "q", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.SearchChatMessages(w, r, streamId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // StartCollection operation middleware
 func (siw *ServerInterfaceWrapper) StartCollection(w http.ResponseWriter, r *http.Request) {
 
@@ -857,6 +940,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/streams/{streamId}/collections/latest", wrapper.GetLatestCollection)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/collection-jobs/{jobId}/retry", wrapper.RetryCollection)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/streams/{streamId}/chat-messages", wrapper.ListChatMessages)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/streams/{streamId}/chat-search", wrapper.SearchChatMessages)
 
 	return m
 }
@@ -1350,6 +1434,76 @@ func (response ListChatMessagesdefaultApplicationProblemPlusJSONResponse) VisitL
 	return err
 }
 
+type SearchChatMessagesRequestObject struct {
+	StreamId StreamId `json:"streamId"`
+	Params   SearchChatMessagesParams
+}
+
+type SearchChatMessagesResponseObject interface {
+	VisitSearchChatMessagesResponse(w http.ResponseWriter) error
+}
+
+type SearchChatMessages200JSONResponse ChatMessagePage
+
+func (response SearchChatMessages200JSONResponse) VisitSearchChatMessagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchChatMessages400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response SearchChatMessages400ApplicationProblemPlusJSONResponse) VisitSearchChatMessagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchChatMessages404ApplicationProblemPlusJSONResponse ProblemDetails
+
+func (response SearchChatMessages404ApplicationProblemPlusJSONResponse) VisitSearchChatMessagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type SearchChatMessagesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       ProblemDetails
+	StatusCode int
+}
+
+func (response SearchChatMessagesdefaultApplicationProblemPlusJSONResponse) VisitSearchChatMessagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type StartCollectionRequestObject struct {
 	StreamId StreamId `json:"streamId"`
 }
@@ -1493,6 +1647,9 @@ type StrictServerInterface interface {
 	// ListChatMessages List persisted chat messages
 	// (GET /v1/streams/{streamId}/chat-messages)
 	ListChatMessages(ctx context.Context, request ListChatMessagesRequestObject) (ListChatMessagesResponseObject, error)
+	// SearchChatMessages Search persisted chat messages
+	// (GET /v1/streams/{streamId}/chat-search)
+	SearchChatMessages(ctx context.Context, request SearchChatMessagesRequestObject) (SearchChatMessagesResponseObject, error)
 	// StartCollection Start chat-replay collection
 	// (POST /v1/streams/{streamId}/collections)
 	StartCollection(ctx context.Context, request StartCollectionRequestObject) (StartCollectionResponseObject, error)
@@ -1724,6 +1881,33 @@ func (sh *strictHandler) ListChatMessages(w http.ResponseWriter, r *http.Request
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(ListChatMessagesResponseObject); ok {
 		if err := validResponse.VisitListChatMessagesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// SearchChatMessages operation middleware
+func (sh *strictHandler) SearchChatMessages(w http.ResponseWriter, r *http.Request, streamId StreamId, params SearchChatMessagesParams) {
+	var request SearchChatMessagesRequestObject
+
+	request.StreamId = streamId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.SearchChatMessages(ctx, request.(SearchChatMessagesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "SearchChatMessages")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(SearchChatMessagesResponseObject); ok {
+		if err := validResponse.VisitSearchChatMessagesResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

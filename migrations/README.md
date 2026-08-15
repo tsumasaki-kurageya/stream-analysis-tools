@@ -33,3 +33,7 @@ stable browsing and provenance queries. The Worker imports this table in bounded
 
 `000004_add_chat_cursor_index` adds the `(stream_id, offset_milliseconds, id)` index used by the Main
 API's opaque cursor. This keeps pagination stable when multiple messages share an offset.
+
+`000005_add_chat_search_trigram_index` enables `pg_trgm` and adds a GIN trigram index for
+case-insensitive partial matching on chat message text. Search remains stream-scoped through the
+existing timeline/cursor indexes.

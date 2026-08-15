@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -208,6 +209,80 @@ func (repository *PostgresRepository) ListMessages(
 		return nil, fmt.Errorf("iterate chat messages: %w", err)
 	}
 	return items, nil
+}
+
+func (repository *PostgresRepository) SearchMessages(
+	ctx context.Context,
+	streamID uuid.UUID,
+	query string,
+	limit int,
+	cursor *Cursor,
+) ([]ChatMessage, error) {
+	var streamExists bool
+	if err := repository.pool.QueryRow(
+		ctx,
+		"SELECT EXISTS (SELECT 1 FROM stream.streams WHERE id = $1)",
+		streamID,
+	).Scan(&streamExists); err != nil {
+		return nil, fmt.Errorf("check stream for chat search: %w", err)
+	}
+	if !streamExists {
+		return nil, ErrStreamNotFound
+	}
+
+	offset := int64(-1 << 63)
+	id := uuid.Nil
+	if cursor != nil {
+		offset = cursor.OffsetMilliseconds
+		id = cursor.ID
+	}
+	rows, err := repository.pool.Query(ctx, `
+		SELECT id, author_channel_id, author_display_name, message_text,
+		       published_at, offset_milliseconds, message_type
+		FROM chat.chat_messages
+		WHERE stream_id = $1
+		  AND message_text ILIKE $2 ESCAPE '\'
+		  AND (offset_milliseconds, id) > ($3, $4)
+		ORDER BY offset_milliseconds, id
+		LIMIT $5
+	`, streamID, "%"+escapeLikePattern(query)+"%", offset, id, limit)
+	if err != nil {
+		return nil, fmt.Errorf("search chat messages: %w", err)
+	}
+	defer rows.Close()
+
+	items := make([]ChatMessage, 0, limit)
+	for rows.Next() {
+		var item ChatMessage
+		var authorChannelID pgtype.Text
+		if err := rows.Scan(
+			&item.ID,
+			&authorChannelID,
+			&item.AuthorDisplayName,
+			&item.MessageText,
+			&item.PublishedAt,
+			&item.OffsetMilliseconds,
+			&item.MessageType,
+		); err != nil {
+			return nil, fmt.Errorf("scan chat search result: %w", err)
+		}
+		if authorChannelID.Valid {
+			item.AuthorChannelID = &authorChannelID.String
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate chat search results: %w", err)
+	}
+	return items, nil
+}
+
+func escapeLikePattern(value string) string {
+	return strings.NewReplacer(
+		`\`, `\\`,
+		`%`, `\%`,
+		`_`, `\_`,
+	).Replace(value)
 }
 
 func lockStream(ctx context.Context, transaction pgx.Tx, streamID uuid.UUID) error {

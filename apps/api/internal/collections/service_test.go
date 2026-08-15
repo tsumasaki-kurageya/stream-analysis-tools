@@ -3,6 +3,7 @@ package collections
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -40,6 +41,31 @@ func TestDecodeCursorRejectsMalformedInput(t *testing.T) {
 	_, err := DecodeCursor("not-a-cursor")
 	if !errors.Is(err, ErrInvalidRequest) {
 		t.Fatalf("expected invalid request, got %v", err)
+	}
+}
+
+func TestSearchMessagesRejectsInvalidQueryAndLimit(t *testing.T) {
+	service := NewService(&repositoryStub{})
+	streamID := uuid.New()
+
+	tests := []struct {
+		name  string
+		query string
+		limit int
+	}{
+		{name: "blank query", query: "   ", limit: DefaultMessageLimit},
+		{name: "short query", query: "ab", limit: DefaultMessageLimit},
+		{name: "long query", query: strings.Repeat("a", 101), limit: DefaultMessageLimit},
+		{name: "zero limit", query: "music", limit: 0},
+		{name: "excessive limit", query: "music", limit: MaxMessageLimit + 1},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := service.SearchMessages(context.Background(), streamID, test.query, test.limit, "")
+			if !errors.Is(err, ErrInvalidRequest) {
+				t.Fatalf("expected invalid request, got %v", err)
+			}
+		})
 	}
 }
 
@@ -97,6 +123,18 @@ func (repository *repositoryStub) Retry(context.Context, uuid.UUID) (Job, error)
 func (repository *repositoryStub) ListMessages(
 	_ context.Context,
 	_ uuid.UUID,
+	limit int,
+	cursor *Cursor,
+) ([]ChatMessage, error) {
+	repository.limit = limit
+	repository.cursor = cursor
+	return repository.messages, repository.err
+}
+
+func (repository *repositoryStub) SearchMessages(
+	_ context.Context,
+	_ uuid.UUID,
+	_ string,
 	limit int,
 	cursor *Cursor,
 ) ([]ChatMessage, error) {

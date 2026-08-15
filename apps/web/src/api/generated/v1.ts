@@ -168,6 +168,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/streams/{streamId}/chat-search": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Search persisted chat messages
+     * @description Returns stream-scoped messages whose text contains the query, using a case-insensitive literal partial match. Results are ordered by offset milliseconds and message ID. The opaque cursor contains only the last returned offset and ID.
+     */
+    get: operations["searchChatMessages"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -551,6 +571,39 @@ export interface operations {
     requestBody?: never;
     responses: {
       /** @description A stable page of chat messages. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChatMessagePage"];
+        };
+      };
+      400: components["responses"]["Problem"];
+      404: components["responses"]["Problem"];
+      default: components["responses"]["Problem"];
+    };
+  };
+  searchChatMessages: {
+    parameters: {
+      query: {
+        /** @description Literal text to find within a chat message. */
+        q: string;
+        /** @description Maximum number of matching messages to return. */
+        limit?: number;
+        /** @description Opaque cursor returned by the previous search page. */
+        cursor?: string;
+      };
+      header?: never;
+      path: {
+        /** @description Internal stream identifier. */
+        streamId: components["parameters"]["StreamId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description A stable page of matching chat messages. */
       200: {
         headers: {
           [name: string]: unknown;
