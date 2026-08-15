@@ -2,7 +2,7 @@ import os
 import signal
 import subprocess
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -73,6 +73,7 @@ class SubprocessYtDlpProcess:
         poll_interval: float = 0.1,
         termination_grace: float = 2.0,
         stderr_limit_bytes: int = 65_536,
+        process_observer: Callable[[int], None] | None = None,
     ) -> None:
         prefix = tuple(command_prefix or (sys.executable, "-m", "yt_dlp"))
         if not prefix or any(not argument for argument in prefix):
@@ -87,6 +88,7 @@ class SubprocessYtDlpProcess:
         self._poll_interval = poll_interval
         self._termination_grace = termination_grace
         self._stderr_limit_bytes = stderr_limit_bytes
+        self._process_observer = process_observer
 
     def run(
         self,
@@ -110,6 +112,8 @@ class SubprocessYtDlpProcess:
                 start_new_session=os.name != "nt",
                 creationflags=(_WINDOWS_PROCESS_CREATION_FLAGS if os.name == "nt" else 0),
             )
+            if self._process_observer is not None:
+                self._process_observer(process.pid)
             termination = self._wait_for_process(
                 process,
                 deadline=request.deadline,

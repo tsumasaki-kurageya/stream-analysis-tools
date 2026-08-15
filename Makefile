@@ -2,7 +2,7 @@ SHELL := /usr/bin/env bash
 
 .PHONY: bootstrap format format-check lint typecheck test build check clean \
 	db-up db-wait db-status db-down db-reset db-logs db-smoke db-integration-test \
-	contract-bootstrap contract-lint contract-generate contract-check
+	contract-bootstrap contract-lint contract-generate contract-check benchmark-chat
 
 bootstrap:
 	npm --prefix apps/web ci
@@ -90,3 +90,6 @@ db-smoke:
 db-integration-test:
 	$(MAKE) -C apps/api integration-test
 	$(MAKE) -C apps/worker integration-test
+
+benchmark-chat:
+	$(MAKE) -C apps/worker benchmark

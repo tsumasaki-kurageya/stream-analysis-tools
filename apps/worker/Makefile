@@ -1,4 +1,10 @@
-.PHONY: sync format format-check lint typecheck test integration-test build check clean
+.PHONY: sync format format-check lint typecheck test integration-test benchmark build check clean
+
+BENCHMARK_VIDEO_ID ?= R3l34mHWmas
+BENCHMARK_TIMEOUT_SECONDS ?= 1800
+BENCHMARK_OUTPUT_DIRECTORY ?= dist/benchmarks
+
+export BENCHMARK_DATABASE_URL
 
 sync:
 	uv sync --frozen --all-groups
@@ -21,6 +27,17 @@ test:
 
 integration-test:
 	uv run pytest -m integration
+
+benchmark:
+	@test -n "$(BENCHMARK_DATABASE_URL)" || { \
+		echo "BENCHMARK_DATABASE_URL is required" >&2; \
+		exit 2; \
+	}
+	uv run python -m stream_analysis_worker.benchmark \
+		--video-id "$(BENCHMARK_VIDEO_ID)" \
+		--timeout-seconds "$(BENCHMARK_TIMEOUT_SECONDS)" \
+		--json-output "$(BENCHMARK_OUTPUT_DIRECTORY)/direct-vs-worker.json" \
+		--markdown-output "$(BENCHMARK_OUTPUT_DIRECTORY)/direct-vs-worker.md"
 
 build:
 	uv build

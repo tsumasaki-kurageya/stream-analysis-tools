@@ -1,0 +1,83 @@
+{
+  "benchmark": "direct-yt-dlp-vs-worker-chat-replay",
+  "canonical_youtube_url": "https://www.youtube.com/watch?v=R3l34mHWmas",
+  "direct": {
+    "acquisition_seconds": 4.973551,
+    "artifact_bytes": 1027940,
+    "duplicate_count": null,
+    "import_seconds": 0.0,
+    "peak_rss_bytes": 73494528,
+    "saved_message_count": null,
+    "skipped_action_count": null,
+    "total_seconds": 4.974308515000303,
+    "yt_dlp_process_count": 1,
+    "yt_dlp_version": "2026.7.4"
+  },
+  "environment": {
+    "credentials": "none (public stream; no cookie or credential flags)",
+    "execution_order": [
+      "direct",
+      "worker"
+    ],
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.36",
+    "python_version": "3.13.11",
+    "same_machine": true,
+    "same_network": true
+  },
+  "gates": [
+    {
+      "detail": "direct=2026.7.4; worker=2026.7.4",
+      "name": "same_yt_dlp_version",
+      "passed": true
+    },
+    {
+      "detail": "actual=3.934s; limit=66.218s",
+      "name": "worker_total_duration",
+      "passed": true
+    },
+    {
+      "detail": "actual=105349120B; limit<536870912B",
+      "name": "worker_peak_rss",
+      "passed": true
+    },
+    {
+      "detail": "direct=1; worker=1",
+      "name": "one_yt_dlp_process_per_attempt",
+      "passed": true
+    },
+    {
+      "detail": "actual=0",
+      "name": "zero_worker_owned_youtube_http_requests",
+      "passed": true
+    },
+    {
+      "detail": "stored=511; saved=511",
+      "name": "stored_message_count",
+      "passed": true
+    },
+    {
+      "detail": "actual=500; limit<=500",
+      "name": "maximum_import_batch_size",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "schema_version": 1,
+  "started_at": "2026-08-15T04:10:21.268005+00:00",
+  "video_id": "R3l34mHWmas",
+  "worker": {
+    "acquisition_seconds": 3.907822,
+    "artifact_bytes": 1027940,
+    "duplicate_count": 0,
+    "import_seconds": 0.02625466600069215,
+    "maximum_batch_size": 500,
+    "peak_rss_bytes": 105349120,
+    "saved_message_count": 511,
+    "skipped_action_count": 22,
+    "stored_message_count": 511,
+    "total_seconds": 3.934076666000692,
+    "worker_owned_youtube_http_request_count": 0,
+    "yt_dlp_process_count": 1,
+    "yt_dlp_version": "2026.7.4"
+  }
+}

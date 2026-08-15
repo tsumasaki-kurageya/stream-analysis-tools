@@ -140,6 +140,28 @@ def test_subprocess_adapter_bounds_captured_stderr(tmp_path: Path) -> None:
     assert result.stderr == "x" * 128
 
 
+def test_subprocess_adapter_observes_exactly_one_process_start(tmp_path: Path) -> None:
+    fake_yt_dlp = write_success_script(tmp_path / "fake_yt_dlp.py")
+    process_ids: list[int] = []
+    process = SubprocessYtDlpProcess(
+        command_prefix=(sys.executable, str(fake_yt_dlp), str(tmp_path / "argv.json")),
+        poll_interval=0.01,
+        process_observer=process_ids.append,
+    )
+
+    process.run(
+        YtDlpProcessRequest(
+            canonical_youtube_url="https://www.youtube.com/watch?v=fixture",
+            attempt_directory=tmp_path / "attempt",
+            deadline=datetime.now(UTC) + timedelta(seconds=5),
+        ),
+        Event(),
+    )
+
+    assert len(process_ids) == 1
+    assert process_ids[0] > 0
+
+
 def write_success_script(path: Path) -> Path:
     path.write_text(
         """
