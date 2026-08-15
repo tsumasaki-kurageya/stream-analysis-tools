@@ -37,14 +37,14 @@ stored count unchanged. The high-volume stored total plus short total was 49,188
 
 ## Restart and rollback
 
-| Gate                         | Result       | Evidence                                                                                                                                        |
-| ---------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| hard Worker restart          | PASS         | Worker killed at `running`, attempt 1, exit 137; lease remained active until expiry                                                             |
-| lease recovery               | PASS         | second Worker reclaimed the same job at attempt 2 and succeeded                                                                                 |
-| idempotent recovery          | PASS         | recovered attempt saved 0, counted 511 duplicates, and retained 511 stored messages                                                             |
-| graceful process termination | PASS         | idle enabled/disabled Workers stopped with exit 0                                                                                               |
-| application rollback         | PASS (local) | API from base commit started against the 6-migration DB; health `ok`; 7 jobs and 49,188 messages remained readable; current API restored health |
-| yt-dlp version rollback      | FAIL         | repository history contains only one characterized pin, `2026.7.4`; there is no safe prior version to deploy                                    |
+| Gate                         | Result       | Evidence                                                                                                                                          |
+| ---------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| hard Worker restart          | PASS         | Worker killed at `running`, attempt 1, exit 137; lease remained active until expiry                                                               |
+| lease recovery               | PASS         | second Worker reclaimed the same job at attempt 2 and succeeded                                                                                   |
+| idempotent recovery          | PASS         | recovered attempt saved 0, counted 511 duplicates, and retained 511 stored messages                                                               |
+| graceful process termination | PASS         | idle enabled/disabled Workers stopped with exit 0                                                                                                 |
+| application rollback         | PASS (local) | API from base commit started against the 6-migration DB; health `ok`; 7 jobs and 49,188 messages remained readable; current API restored health   |
+| yt-dlp version rollback      | PASS (local) | rollback commit `9b2df7b` installed frozen `2026.6.9`; short/no-data/access-denied canaries passed; current `2026.7.4` pin and lock were restored |
 
 ## M1–M4 and production evidence
 
@@ -62,8 +62,8 @@ stored count unchanged. The high-volume stored total plus short total was 49,188
    deploy current API/Web/Worker with queue disabled and repeat this report there.
 2. **Release owner:** provide a scoped YouTube Data API credential through the platform secret store;
    run the M1 and M4 browser paths without copying the value into evidence.
-3. **Worker owner:** characterize and lock one previous yt-dlp release, then execute the version
-   rollback section. Until then, yt-dlp rollback remains a hard release blocker.
+3. **Release owner:** repeat the characterized yt-dlp `2026.6.9` rollback in the target environment;
+   local evidence does not replace the production gate.
 4. **Worker owner:** add stable classification for unavailable/access-denied outcomes if operators
    need distinct remediation; both currently collapse safely to `YTDLP_PROCESS_FAILED`.
 5. **QA owner:** select a controlled scheduled/live stream and complete archive-not-ready plus full

@@ -21,6 +21,11 @@ Record these non-secret identifiers before deployment:
 If there is no previously characterized yt-dlp version, the yt-dlp rollback gate is **FAIL**. Do not
 invent a rollback version or deploy an uncharacterized package.
 
+The repository's characterized fallback is yt-dlp `2026.6.9` at application commit
+`9b2df7ba39c2358b0ddf7827872b253824b108dc`. Its hashes, local canary evidence, and limitations are
+recorded in the
+[rollback characterization](../research/yt-dlp-rollback-2026.06.09-characterization.md).
+
 ## 1. Deploy fail-closed
 
 Deploy the API and Worker from the same release commit with:

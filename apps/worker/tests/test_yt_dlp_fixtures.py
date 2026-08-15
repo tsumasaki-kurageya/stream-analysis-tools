@@ -8,7 +8,7 @@ SOURCE_IDENTIFIERS = ("R3l34mHWmas", "I-J11Da5ONY", "ytimg.com", "googleusercont
 
 
 def test_yt_dlp_version_is_pinned() -> None:
-    assert version("yt-dlp") == "2026.6.9"
+    assert version("yt-dlp") == "2026.7.4"
 
 
 def _strings(value: Any) -> list[str]:
