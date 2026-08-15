@@ -6,6 +6,11 @@ from time import monotonic
 from typing import Protocol
 from uuid import UUID
 
+from stream_analysis_worker.collector import (
+    ChatReplayCollector,
+    CollectionFailure,
+    CollectionRequest,
+)
 from stream_analysis_worker.jobs import ClaimedJob, JobLease
 from stream_analysis_worker.observability import (
     JobMetric,
@@ -79,6 +84,43 @@ class JobRepository(Protocol):
 
 class JobRunner(Protocol):
     def run(self, job: ClaimedJob, cancellation: Event) -> JobResult: ...
+
+
+class ChatReplayJobRunner:
+    def __init__(
+        self,
+        *,
+        collector: ChatReplayCollector,
+        clock: Callable[[], datetime],
+        attempt_timeout: timedelta,
+    ) -> None:
+        if attempt_timeout <= timedelta(0):
+            raise ValueError("attempt_timeout must be positive")
+        self._collector = collector
+        self._clock = clock
+        self._attempt_timeout = attempt_timeout
+
+    def run(self, job: ClaimedJob, cancellation: Event) -> JobResult:
+        try:
+            result = self._collector.collect(
+                CollectionRequest(
+                    collection_job_id=job.id,
+                    stream_id=job.stream_id,
+                    canonical_youtube_url=job.canonical_youtube_url,
+                    attempt=job.attempt,
+                    deadline=self._clock() + self._attempt_timeout,
+                ),
+                cancellation,
+            )
+        except CollectionFailure as failure:
+            return JobResult.failed(
+                error_code=failure.code.value,
+                error_message=failure.safe_message,
+            )
+        return JobResult.succeeded(
+            processed_count=result.saved_message_count,
+            skipped_count=result.skipped_action_count,
+        )
 
 
 class ClaimLoop:

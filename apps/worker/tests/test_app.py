@@ -1,17 +1,46 @@
 import json
 import os
+import subprocess
+import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
-from stream_analysis_worker.app import build_startup_message, main, run_startup
+from stream_analysis_worker.app import WorkerSettings, build_startup_message, main, run_startup
 
 
 def test_startup_message_identifies_ready_worker() -> None:
-    message = json.loads(build_startup_message())
+    message = json.loads(build_startup_message(queue_enabled=False))
 
-    assert message == {"component": "collection-worker", "status": "ready"}
+    assert message == {
+        "component": "collection-worker",
+        "queue_consumption": "disabled",
+        "status": "ready",
+    }
+
+
+def test_queue_consumption_is_disabled_unless_explicitly_enabled() -> None:
+    assert WorkerSettings.from_environment({}).queue_enabled is False
+    assert (
+        WorkerSettings.from_environment({"YSA_WORKER_QUEUE_ENABLED": "false"}).queue_enabled
+        is False
+    )
+    assert (
+        WorkerSettings.from_environment(
+            {
+                "YSA_WORKER_QUEUE_ENABLED": "true",
+                "YSA_DATABASE_URL": "postgresql://worker.invalid/database",
+            }
+        ).queue_enabled
+        is True
+    )
+
+    with pytest.raises(ValueError, match="YSA_DATABASE_URL"):
+        WorkerSettings.from_environment({"YSA_WORKER_QUEUE_ENABLED": "true"})
+
+    with pytest.raises(ValueError, match="YSA_WORKER_QUEUE_ENABLED"):
+        WorkerSettings.from_environment({"YSA_WORKER_QUEUE_ENABLED": "yes"})
 
 
 def test_startup_reports_cleanup_and_disk_capacity(tmp_path: Path) -> None:
@@ -37,7 +66,11 @@ def test_startup_reports_cleanup_and_disk_capacity(tmp_path: Path) -> None:
     ]
     assert events[0]["removed_directory_count"] == 1
     assert events[0]["removed_artifact_bytes"] == len(b"temporary-chat")
-    assert events[2] == {"component": "collection-worker", "status": "ready"}
+    assert events[2] == {
+        "component": "collection-worker",
+        "queue_consumption": "disabled",
+        "status": "ready",
+    }
 
 
 def test_main_reports_capacity_failure_without_a_traceback(
@@ -63,3 +96,35 @@ def test_main_reports_capacity_failure_without_a_traceback(
         "status": "failed",
     }
     assert str(tmp_path) not in output.out
+
+
+def test_disabled_worker_stays_ready_without_connecting_to_the_queue(tmp_path: Path) -> None:
+    environment = {
+        **os.environ,
+        "YSA_WORKER_QUEUE_ENABLED": "false",
+        "YSA_DATABASE_URL": "postgresql://invalid:invalid@127.0.0.1:1/invalid",
+        "YSA_WORKER_ATTEMPT_ROOT": str(tmp_path),
+        "YSA_WORKER_MINIMUM_FREE_BYTES": "1",
+    }
+    process = subprocess.Popen(
+        [sys.executable, "-m", "stream_analysis_worker"],
+        env=environment,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert process.stdout is not None
+        events = [json.loads(process.stdout.readline()) for _ in range(3)]
+        assert events[-1] == {
+            "component": "collection-worker",
+            "queue_consumption": "disabled",
+            "status": "ready",
+        }
+        assert process.poll() is None
+    finally:
+        process.terminate()
+        stdout, stderr = process.communicate(timeout=5)
+    assert process.returncode == 0
+    assert stdout == ""
+    assert stderr == ""

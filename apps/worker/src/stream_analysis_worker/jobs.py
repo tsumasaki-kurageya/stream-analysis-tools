@@ -22,6 +22,7 @@ class JobLease:
 class ClaimedJob:
     id: UUID
     stream_id: UUID
+    canonical_youtube_url: str
     kind: str
     attempt: int
     started_at: datetime
@@ -48,11 +49,12 @@ class PostgresJobRepository:
             row = connection.execute(
                 """
                 WITH candidate AS (
-                    SELECT id
-                    FROM collection.collection_jobs
-                    WHERE status = 'queued'
-                       OR (status = 'running' AND lease_expires_at <= %(claimed_at)s)
-                    ORDER BY requested_at, id
+                    SELECT job.id, stream.canonical_url
+                    FROM collection.collection_jobs AS job
+                    JOIN stream.streams AS stream ON stream.id = job.stream_id
+                    WHERE job.status = 'queued'
+                       OR (job.status = 'running' AND job.lease_expires_at <= %(claimed_at)s)
+                    ORDER BY job.requested_at, job.id
                     FOR UPDATE SKIP LOCKED
                     LIMIT 1
                 )
@@ -73,6 +75,7 @@ class PostgresJobRepository:
                 RETURNING
                     job.id,
                     job.stream_id,
+                    candidate.canonical_url,
                     job.kind,
                     job.attempt,
                     job.started_at,
@@ -270,6 +273,7 @@ def claimed_job_from_row(row: tuple[Any, ...]) -> ClaimedJob:
     (
         job_id,
         stream_id,
+        canonical_youtube_url,
         kind,
         attempt,
         started_at,
@@ -281,6 +285,7 @@ def claimed_job_from_row(row: tuple[Any, ...]) -> ClaimedJob:
     return ClaimedJob(
         id=job_id,
         stream_id=stream_id,
+        canonical_youtube_url=canonical_youtube_url,
         kind=kind,
         attempt=attempt,
         started_at=started_at,

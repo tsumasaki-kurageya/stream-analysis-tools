@@ -90,10 +90,18 @@ PostgreSQL leases; `YSA_RESERVATION_MONITOR_WORKER_ID` can set a stable instance
 defaults to the host name.
 
 The Worker checks its temporary-artifact directory at startup and before every collection attempt.
+Queue consumption is fail-closed: `YSA_WORKER_QUEUE_ENABLED` defaults to `false` and must be set to
+`true` explicitly only after the production canary gates pass. When disabled, the Worker remains
+ready, handles shutdown signals, and never connects to or claims from PostgreSQL. `YSA_DATABASE_URL`
+is required when queue consumption is enabled. `YSA_WORKER_ID`, `YSA_WORKER_LEASE_SECONDS`,
+`YSA_WORKER_HEARTBEAT_INTERVAL_SECONDS`, `YSA_WORKER_POLL_INTERVAL_SECONDS`, and
+`YSA_WORKER_ATTEMPT_TIMEOUT_SECONDS` configure claim ownership and bounded execution.
 `YSA_WORKER_ATTEMPT_ROOT`, `YSA_WORKER_ORPHAN_AFTER_SECONDS`, and
 `YSA_WORKER_MINIMUM_FREE_BYTES` configure its cleanup age and disk-capacity guard. Structured JSON
 metrics and alert guidance are documented in the
 [observability runbook](docs/operations/observability.md).
+The release sequence, mandatory real-data cases, rollback steps, and evidence rules are documented in
+the [production canary and rollback runbook](docs/operations/production-canary-and-rollback.md).
 
 The default local connection is
 `postgresql://stream_analysis:stream_analysis_local@localhost:5432/stream_analysis?sslmode=disable`.

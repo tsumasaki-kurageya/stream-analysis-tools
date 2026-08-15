@@ -313,6 +313,21 @@ def test_claim_loop_runs_and_succeeds_a_claimed_job(database_url: str) -> None:
     assert next_job is None
 
 
+def test_claimed_job_carries_its_stream_url_to_the_runner(database_url: str) -> None:
+    seed_collection_job(database_url, "runnerurl01")
+    claimed_at = datetime(2026, 8, 12, 6, 30, tzinfo=UTC)
+
+    with ConnectionPool(database_url, min_size=1, max_size=1) as pool:
+        job = PostgresJobRepository(pool).claim_next(
+            worker_id="worker-url",
+            claimed_at=claimed_at,
+            lease_duration=timedelta(minutes=2),
+        )
+
+    assert job is not None
+    assert job.canonical_youtube_url == "https://www.youtube.com/watch?v=runnerurl01"
+
+
 def test_claim_loop_heartbeats_while_the_runner_is_active(database_url: str) -> None:
     job_id = seed_collection_job(database_url, "claim-loop-heartbeat")
     claimed_at = datetime(2026, 8, 12, 7, 0, tzinfo=UTC)

@@ -242,6 +242,7 @@ class RecordingJobRepository:
         self.job = ClaimedJob(
             id=UUID("20000000-0000-0000-0000-000000000001"),
             stream_id=UUID("10000000-0000-0000-0000-000000000001"),
+            canonical_youtube_url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
             kind="chat_replay",
             attempt=2,
             started_at=now,
