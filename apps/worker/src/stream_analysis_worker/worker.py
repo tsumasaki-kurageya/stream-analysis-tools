@@ -2,10 +2,17 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from threading import Event, Lock, Thread
+from time import monotonic
 from typing import Protocol
 from uuid import UUID
 
 from stream_analysis_worker.jobs import ClaimedJob, JobLease
+from stream_analysis_worker.observability import (
+    JobMetric,
+    MetricSink,
+    NullMetricSink,
+    safe_error_code,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,6 +92,7 @@ class ClaimLoop:
         clock: Callable[[], datetime],
         heartbeat_interval: timedelta = timedelta(seconds=30),
         poll_interval: timedelta = timedelta(seconds=1),
+        metric_sink: MetricSink | None = None,
     ) -> None:
         if not worker_id:
             raise ValueError("worker_id must not be empty")
@@ -101,6 +109,7 @@ class ClaimLoop:
         self._clock = clock
         self._heartbeat_interval = heartbeat_interval
         self._poll_interval = poll_interval
+        self._metric_sink = metric_sink or NullMetricSink()
 
     def run_until_cancelled(self, cancellation: Event) -> None:
         while not cancellation.is_set():
@@ -119,6 +128,7 @@ class ClaimLoop:
         )
         if job is None:
             return False
+        started_at = monotonic()
 
         lease = [job.lease]
         lease_lock = Lock()
@@ -162,12 +172,29 @@ class ClaimLoop:
                 processed_count=result.processed_count,
                 skipped_count=result.skipped_count,
             )
+            outcome = "succeeded"
         else:
+            error_code = safe_error_code(result.error_code)
             self._repository.mark_failed(
                 job_id=job.id,
                 lease=final_lease,
                 finished_at=finished_at,
-                error_code=result.error_code,
-                error_message=result.error_message,
+                error_code=error_code,
+                error_message="Collection job failed.",
             )
+            outcome = "failed"
+        self._metric_sink.emit(
+            JobMetric(
+                job_id=str(job.id),
+                job_kind=job.kind,
+                attempt=job.attempt,
+                outcome=outcome,
+                duration_seconds=monotonic() - started_at,
+                processed_count=result.processed_count,
+                skipped_count=result.skipped_count,
+                error_code=(
+                    safe_error_code(result.error_code) if result.error_code is not None else None
+                ),
+            )
+        )
         return True

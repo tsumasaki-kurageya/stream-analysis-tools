@@ -5,6 +5,7 @@ from collections.abc import Iterator, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Event
+from time import monotonic
 from typing import Any, Protocol
 
 from stream_analysis_worker.chat import ChatMessage
@@ -15,6 +16,13 @@ from stream_analysis_worker.collector import (
     CollectionOutcome,
     CollectionRequest,
     CollectionResult,
+)
+from stream_analysis_worker.observability import (
+    ArtifactDirectoryManager,
+    CollectionAttemptMetric,
+    InsufficientDiskCapacity,
+    MetricSink,
+    NullMetricSink,
 )
 from stream_analysis_worker.yt_dlp_process import (
     ProcessTermination,
@@ -39,6 +47,8 @@ class YtDlpChatReplayCollector:
         messages: ChatMessageRepository,
         attempt_root: Path,
         batch_size: int = 500,
+        metric_sink: MetricSink | None = None,
+        artifact_manager: ArtifactDirectoryManager | None = None,
     ) -> None:
         if batch_size < 1 or batch_size > 500:
             raise ValueError("batch_size must be between 1 and 500")
@@ -46,20 +56,35 @@ class YtDlpChatReplayCollector:
         self._messages = messages
         self._attempt_root = attempt_root
         self._batch_size = batch_size
+        self._metric_sink = metric_sink or NullMetricSink()
+        self._artifact_manager = artifact_manager or ArtifactDirectoryManager(
+            root=attempt_root,
+            sink=self._metric_sink,
+        )
 
     def collect(
         self,
         request: CollectionRequest,
         cancellation: Event,
     ) -> CollectionResult:
-        self._attempt_root.mkdir(parents=True, exist_ok=True)
-        attempt_directory = Path(
-            tempfile.mkdtemp(
-                prefix=f"{request.collection_job_id}-attempt-{request.attempt}-",
-                dir=self._attempt_root,
-            )
-        )
+        started_at = monotonic()
+        process_result = None
+        attempt_directory: Path | None = None
         try:
+            try:
+                self._artifact_manager.prepare()
+            except InsufficientDiskCapacity:
+                raise CollectionFailure(
+                    code=CollectionErrorCode.WORKER_DISK_CAPACITY_LOW,
+                    retryable=True,
+                    safe_message="Worker temporary storage capacity is too low.",
+                ) from None
+            attempt_directory = Path(
+                tempfile.mkdtemp(
+                    prefix=f"{request.collection_job_id}-attempt-{request.attempt}-",
+                    dir=self._artifact_manager.root,
+                )
+            )
             try:
                 process_result = self._process.run(
                     YtDlpProcessRequest(
@@ -98,7 +123,7 @@ class YtDlpChatReplayCollector:
                     safe_message="yt-dlp left an incomplete chat artifact.",
                 )
             if process_result.artifact_path is None:
-                return CollectionResult(
+                result = CollectionResult(
                     outcome=CollectionOutcome.NO_DATA,
                     saved_message_count=0,
                     duplicate_count=0,
@@ -107,6 +132,8 @@ class YtDlpChatReplayCollector:
                     yt_dlp_version=process_result.yt_dlp_version,
                     duration=process_result.duration,
                 )
+                self._emit_attempt(request, result=result)
+                return result
 
             saved_count = 0
             duplicate_count = 0
@@ -146,7 +173,7 @@ class YtDlpChatReplayCollector:
                     safe_message="Chat messages could not be imported.",
                 ) from None
 
-            return CollectionResult(
+            result = CollectionResult(
                 outcome=CollectionOutcome.SUCCEEDED,
                 saved_message_count=saved_count,
                 duplicate_count=duplicate_count,
@@ -155,8 +182,76 @@ class YtDlpChatReplayCollector:
                 yt_dlp_version=process_result.yt_dlp_version,
                 duration=process_result.duration,
             )
+            self._emit_attempt(request, result=result)
+            return result
+        except CollectionFailure as failure:
+            self._metric_sink.emit(
+                CollectionAttemptMetric(
+                    job_id=str(request.collection_job_id),
+                    attempt=request.attempt,
+                    outcome="failed",
+                    duration_seconds=(
+                        process_result.duration.total_seconds()
+                        if process_result is not None
+                        else monotonic() - started_at
+                    ),
+                    saved_message_count=0,
+                    duplicate_count=0,
+                    skipped_action_count=0,
+                    artifact_bytes=0,
+                    yt_dlp_version=(
+                        process_result.yt_dlp_version if process_result is not None else None
+                    ),
+                    error_code=failure.code.value,
+                )
+            )
+            raise
+        except CollectionCancelled:
+            self._metric_sink.emit(
+                CollectionAttemptMetric(
+                    job_id=str(request.collection_job_id),
+                    attempt=request.attempt,
+                    outcome="cancelled",
+                    duration_seconds=(
+                        process_result.duration.total_seconds()
+                        if process_result is not None
+                        else monotonic() - started_at
+                    ),
+                    saved_message_count=0,
+                    duplicate_count=0,
+                    skipped_action_count=0,
+                    artifact_bytes=0,
+                    yt_dlp_version=(
+                        process_result.yt_dlp_version if process_result is not None else None
+                    ),
+                    error_code="COLLECTION_CANCELLED",
+                )
+            )
+            raise
         finally:
-            shutil.rmtree(attempt_directory, ignore_errors=True)
+            if attempt_directory is not None:
+                shutil.rmtree(attempt_directory, ignore_errors=True)
+
+    def _emit_attempt(
+        self,
+        request: CollectionRequest,
+        *,
+        result: CollectionResult,
+    ) -> None:
+        self._metric_sink.emit(
+            CollectionAttemptMetric(
+                job_id=str(request.collection_job_id),
+                attempt=request.attempt,
+                outcome=result.outcome.value,
+                duration_seconds=result.duration.total_seconds(),
+                saved_message_count=result.saved_message_count,
+                duplicate_count=result.duplicate_count,
+                skipped_action_count=result.skipped_action_count,
+                artifact_bytes=result.artifact_bytes,
+                yt_dlp_version=result.yt_dlp_version,
+                error_code=None,
+            )
+        )
 
 
 def parse_chat_artifact(

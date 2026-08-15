@@ -89,6 +89,12 @@ The API applies ordered migrations at startup. `YSA_MIGRATIONS_DIR` defaults to
 PostgreSQL leases; `YSA_RESERVATION_MONITOR_WORKER_ID` can set a stable instance identifier and
 defaults to the host name.
 
+The Worker checks its temporary-artifact directory at startup and before every collection attempt.
+`YSA_WORKER_ATTEMPT_ROOT`, `YSA_WORKER_ORPHAN_AFTER_SECONDS`, and
+`YSA_WORKER_MINIMUM_FREE_BYTES` configure its cleanup age and disk-capacity guard. Structured JSON
+metrics and alert guidance are documented in the
+[observability runbook](docs/operations/observability.md).
+
 The default local connection is
 `postgresql://stream_analysis:stream_analysis_local@localhost:5432/stream_analysis?sslmode=disable`.
 Copy `.env.example` to `.env` to override local values. See the

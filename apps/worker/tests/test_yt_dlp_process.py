@@ -137,7 +137,7 @@ def test_subprocess_adapter_bounds_captured_stderr(tmp_path: Path) -> None:
     )
 
     assert result.exit_code == 1
-    assert result.stderr == "x" * 128
+    assert result.stderr == "[REDACTED STDERR]"
 
 
 def test_subprocess_adapter_observes_exactly_one_process_start(tmp_path: Path) -> None:
@@ -204,7 +204,13 @@ def write_stderr_script(path: Path) -> Path:
         """
 import sys
 
-sys.stderr.write("x" * 10_000)
+sys.stderr.write(
+    "Authorization: Bearer auth-secret "
+    "cookie=secret-cookie "
+    "https://proxy-user:proxy-password@proxy.example "
+    "continuation=raw-continuation "
+    "private-message-content"
+)
 raise SystemExit(1)
 """.lstrip(),
         encoding="utf-8",

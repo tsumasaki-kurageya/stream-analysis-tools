@@ -25,18 +25,18 @@ func main() {
 		"postgresql://stream_analysis:stream_analysis_local@localhost:5432/stream_analysis?sslmode=disable",
 	))
 	if err != nil {
-		log.Fatalf("configure PostgreSQL: %v", err)
+		log.Fatal("configure PostgreSQL: DATABASE_CONFIGURATION_ERROR")
 	}
 	defer pool.Close()
 	if err := pool.Ping(ctx); err != nil {
-		log.Fatalf("connect to PostgreSQL: %v", err)
+		log.Fatal("connect to PostgreSQL: DATABASE_CONNECTION_ERROR")
 	}
 	if err := database.ApplyMigrations(
 		ctx,
 		pool,
 		os.DirFS(envOrDefault("YSA_MIGRATIONS_DIR", "migrations")),
 	); err != nil {
-		log.Fatalf("apply database migrations: %v", err)
+		log.Fatal("apply database migrations: DATABASE_MIGRATION_ERROR")
 	}
 
 	metadataClient, err := youtube.NewClient(
@@ -50,7 +50,7 @@ func main() {
 		},
 	)
 	if err != nil {
-		log.Fatalf("configure YouTube metadata client: %v", err)
+		log.Fatal("configure YouTube metadata client: METADATA_CLIENT_CONFIGURATION_ERROR")
 	}
 	streamService := streams.NewService(streams.NewPostgresRepository(pool), metadataClient)
 	collectionService := collections.NewService(collections.NewPostgresRepository(pool))
@@ -60,6 +60,7 @@ func main() {
 		reservationMonitorWorkerID(),
 		time.Now,
 		2*time.Minute,
+		reservations.NewJSONMonitorObserver(os.Stdout),
 	)
 	go runReservationMonitor(context.Background(), reservationMonitor)
 
@@ -72,7 +73,7 @@ func main() {
 
 	log.Printf("main API listening on %s", address)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatal(err)
+		log.Fatal("main API stopped: HTTP_SERVER_ERROR")
 	}
 }
 
@@ -81,7 +82,7 @@ func runReservationMonitor(ctx context.Context, monitor *reservations.Monitor) {
 	for {
 		didWork, err := monitor.RunOnce(ctx)
 		if err != nil {
-			log.Printf("reservation monitor: %v", err)
+			log.Printf("reservation monitor failed: RESERVATION_MONITOR_RUN_FAILED")
 		}
 		if didWork && err == nil {
 			continue

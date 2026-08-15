@@ -214,8 +214,11 @@ class SubprocessYtDlpProcess:
 def _read_tail(path: Path, *, limit: int) -> str:
     with path.open("rb") as contents:
         size = contents.seek(0, os.SEEK_END)
+        if size == 0:
+            return ""
         contents.seek(max(0, size - limit))
-        return contents.read().decode("utf-8", errors="replace")
+        contents.read()
+        return "[REDACTED STDERR]"
 
 
 def _signal_process_group(pid: int, signal_number: int) -> None:
