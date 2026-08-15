@@ -9,14 +9,16 @@ test("creates and cancels a supported reservation", async ({ page }) => {
   await page.goto("/reservations");
 
   await page.getByRole("textbox", { name: "YouTube URL" }).fill(sourceUrl);
-  await page.getByRole("button", { name: "Create reservation" }).click();
+  await page.getByRole("button", { name: "収集を予約" }).click();
   await expect(page).toHaveURL(`/reservations/${reservationId}`);
-  await expect(page.getByRole("heading", { name: "Scheduled" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "配信待ち" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Cancel reservation" }).click();
-  await expect(page.getByRole("heading", { name: "Canceled" })).toBeVisible();
+  await page.getByRole("button", { name: "予約をキャンセル" }).click();
   await expect(
-    page.getByRole("button", { name: "Cancel reservation" }),
+    page.getByRole("heading", { name: "キャンセル済み" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "予約をキャンセル" }),
   ).toHaveCount(0);
 });
 
@@ -27,13 +29,13 @@ test("follows automatic collection through completion to stream detail", async (
   await page.goto("/reservations");
 
   await page.getByRole("textbox", { name: "YouTube URL" }).fill(sourceUrl);
-  await page.getByRole("button", { name: "Create reservation" }).click();
-  await expect(page.getByRole("heading", { name: "Collecting" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Completed" })).toBeVisible({
+  await page.getByRole("button", { name: "収集を予約" }).click();
+  await expect(page.getByRole("heading", { name: "収集中" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "完了" })).toBeVisible({
     timeout: 7_000,
   });
 
-  await page.getByRole("link", { name: "Open collected stream" }).click();
+  await page.getByRole("link", { name: "収集済みストリームを開く" }).click();
   await expect(page).toHaveURL(`/streams/${streamId}`);
   await expect(
     page.getByRole("heading", { name: "Reserved broadcast" }),

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 
@@ -43,10 +43,43 @@ const failedCollection = {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  window.localStorage.clear();
   window.history.replaceState(null, "", "/");
 });
 
 describe("stream registration", () => {
+  it("presents the stream workflow as a Japanese three-pane workspace", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ items: [], limit: 20, offset: 0 })),
+    );
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "動画とチャットを、ひとつの場所で。",
+      }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("navigation", { name: "メインナビゲーション" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("complementary", { name: "ストリームライブラリ" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("complementary", { name: "操作パネル" }),
+    ).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: "左パネルを閉じる" }));
+    expect(
+      screen.queryByRole("complementary", { name: "ストリームライブラリ" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "左パネルを開く" }),
+    ).toBeDefined();
+  });
+
   it("shows that the stream library is loading", async () => {
     let resolveList!: (response: Response) => void;
     vi.stubGlobal(
@@ -62,10 +95,12 @@ describe("stream registration", () => {
     render(<App />);
 
     expect(screen.getByRole("status").textContent).toContain(
-      "Loading stream library",
+      "ストリームを読み込んでいます",
     );
     resolveList(jsonResponse({ items: [], limit: 20, offset: 0 }));
-    expect(await screen.findByText("No streams saved yet.")).toBeDefined();
+    expect(
+      await screen.findByText("保存済みのストリームはありません。"),
+    ).toBeDefined();
   });
 
   it("previews an ended stream before registration", async () => {
@@ -87,17 +122,70 @@ describe("stream registration", () => {
       await screen.findByRole("textbox", { name: "YouTube URL" }),
       { target: { value: "https://youtu.be/dQw4w9WgXcQ" } },
     );
-    fireEvent.click(screen.getByRole("button", { name: "Preview stream" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "ストリームをプレビュー" }),
+    );
 
     expect(
       await screen.findByRole("heading", { name: "An evening of live music" }),
     ).toBeDefined();
-    expect(screen.getByText("Harbor Sessions")).toBeDefined();
-    expect(screen.getByText("1 hr 32 min")).toBeDefined();
+    const previewRegion = screen.getByRole("region", {
+      name: "ストリームのプレビュー",
+    });
+    expect(within(previewRegion).getByText("Harbor Sessions")).toBeDefined();
+    expect(within(previewRegion).getByText("1時間32分")).toBeDefined();
     expect(fetchMock).toHaveBeenCalledWith(
       "/v1/streams/preview",
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  it("reopens a previewed stream from persistent history without re-entering its URL", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const requestUrl = String(input);
+      if (requestUrl === "/v1/streams?limit=20&offset=0") {
+        return jsonResponse({ items: [], limit: 20, offset: 0 });
+      }
+      if (requestUrl === "/v1/streams/preview") {
+        return jsonResponse(endedStreamPreview);
+      }
+      throw new Error(`Unexpected request: ${requestUrl}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const firstRender = render(<App />);
+    await screen.findByText("保存済みのストリームはありません。");
+    fireEvent.change(
+      await screen.findByRole("textbox", { name: "YouTube URL" }),
+      { target: { value: endedStreamPreview.canonicalUrl } },
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "ストリームをプレビュー" }),
+    );
+    expect(
+      await screen.findByRole("heading", { name: endedStreamPreview.title }),
+    ).toBeDefined();
+    firstRender.unmount();
+
+    render(<App />);
+    await screen.findByText("保存済みのストリームはありません。");
+    const recentPreview = await screen.findByRole("button", {
+      name: `${endedStreamPreview.title}を再び開く`,
+    });
+    fireEvent.click(recentPreview);
+
+    expect(
+      screen.getByRole("heading", { name: endedStreamPreview.title }),
+    ).toBeDefined();
+    expect(screen.getByRole("textbox", { name: "YouTube URL" })).toHaveProperty(
+      "value",
+      endedStreamPreview.canonicalUrl,
+    );
+    expect(
+      fetchMock.mock.calls.filter(
+        ([input]) => String(input) === "/v1/streams/preview",
+      ),
+    ).toHaveLength(1);
   });
 
   it("registers the previewed stream and opens its detail", async () => {
@@ -127,15 +215,19 @@ describe("stream registration", () => {
       await screen.findByRole("textbox", { name: "YouTube URL" }),
       { target: { value: "https://youtu.be/dQw4w9WgXcQ" } },
     );
-    fireEvent.click(screen.getByRole("button", { name: "Preview stream" }));
     fireEvent.click(
-      await screen.findByRole("button", { name: "Save to library" }),
+      screen.getByRole("button", { name: "ストリームをプレビュー" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "ライブラリに保存" }),
     );
 
     expect(
       await screen.findByRole("heading", { name: "An evening of live music" }),
     ).toBeDefined();
-    expect(screen.getByRole("link", { name: "Back to library" })).toBeDefined();
+    expect(
+      screen.getByRole("link", { name: "ライブラリに戻る" }),
+    ).toBeDefined();
     expect(window.location.pathname).toBe(
       "/streams/f47ac10b-58cc-4372-a567-0e02b2c3d479",
     );
@@ -168,10 +260,11 @@ describe("stream registration", () => {
     expect(
       await screen.findByRole("heading", { name: "An evening of live music" }),
     ).toBeDefined();
-    expect(screen.getByText("August 10, 2026")).toBeDefined();
-    expect(
-      screen.getByRole("link", { name: "Watch on YouTube" }),
-    ).toHaveProperty("href", endedStreamPreview.canonicalUrl);
+    expect(screen.getByText("2026年8月10日")).toBeDefined();
+    expect(screen.getByRole("link", { name: "YouTube で開く" })).toHaveProperty(
+      "href",
+      endedStreamPreview.canonicalUrl,
+    );
   });
 
   it("opens a saved stream from the library", async () => {
@@ -200,8 +293,59 @@ describe("stream registration", () => {
       await screen.findByRole("link", { name: "An evening of live music" }),
     );
 
-    expect(screen.getByRole("link", { name: "Back to library" })).toBeDefined();
+    expect(
+      screen.getByRole("link", { name: "ライブラリに戻る" }),
+    ).toBeDefined();
     expect(window.location.pathname).toBe(`/streams/${registeredStream.id}`);
+  });
+
+  it("switches directly between registered streams from the detail workspace", async () => {
+    const anotherStream = {
+      ...collectedStream,
+      id: "c56a4180-65aa-42ec-a945-5fd21dec0538",
+      youtubeVideoId: "anotherVideo",
+      canonicalUrl: "https://www.youtube.com/watch?v=anotherVideo",
+      title: "Another archived stream",
+    };
+    window.history.replaceState(null, "", `/streams/${collectedStream.id}`);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const requestUrl = String(input);
+        if (requestUrl === "/v1/streams?limit=20&offset=0") {
+          return jsonResponse({
+            items: [collectedStream, anotherStream],
+            limit: 20,
+            offset: 0,
+          });
+        }
+        if (requestUrl === `/v1/streams/${collectedStream.id}`) {
+          return jsonResponse(collectedStream);
+        }
+        if (requestUrl.endsWith("/collections/latest")) {
+          return jsonResponse(
+            {
+              title: "Collection job not found",
+              status: 404,
+              detail: "No collection has been requested for this stream.",
+              code: "COLLECTION_JOB_NOT_FOUND",
+            },
+            404,
+          );
+        }
+        throw new Error(`Unexpected request: ${requestUrl}`);
+      }),
+    );
+
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("link", { name: anotherStream.title }),
+    );
+
+    expect(window.location.pathname).toBe(`/streams/${anotherStream.id}`);
+    expect(
+      screen.getByRole("heading", { name: anotherStream.title }),
+    ).toBeDefined();
   });
 
   it("shows an actionable message for an invalid YouTube URL", async () => {
@@ -232,9 +376,15 @@ describe("stream registration", () => {
       await screen.findByRole("textbox", { name: "YouTube URL" }),
       { target: { value: "https://example.com/not-youtube" } },
     );
-    fireEvent.click(screen.getByRole("button", { name: "Preview stream" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "ストリームをプレビュー" }),
+    );
 
-    expect((await screen.findByRole("alert")).textContent).toContain(
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain(
+      "対応している YouTube 動画の URL を入力してください。",
+    );
+    expect(alert.textContent).not.toContain(
       "Provide a supported YouTube video URL.",
     );
   });
@@ -283,13 +433,15 @@ describe("stream registration", () => {
       await screen.findByRole("textbox", { name: "YouTube URL" }),
       { target: { value: "https://youtu.be/dQw4w9WgXcQ" } },
     );
-    fireEvent.click(screen.getByRole("button", { name: "Preview stream" }));
     fireEvent.click(
-      await screen.findByRole("button", { name: "Save to library" }),
+      screen.getByRole("button", { name: "ストリームをプレビュー" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "ライブラリに保存" }),
     );
 
     expect(
-      await screen.findByRole("link", { name: "Back to library" }),
+      await screen.findByRole("link", { name: "ライブラリに戻る" }),
     ).toBeDefined();
     expect(window.location.pathname).toBe(`/streams/${registeredStream.id}`);
   });
@@ -315,18 +467,136 @@ describe("stream registration", () => {
     render(<App />);
 
     expect(
-      await screen.findByRole("heading", { name: "Stream not found" }),
+      await screen.findByRole("heading", {
+        name: "ストリームが見つかりません",
+      }),
     ).toBeDefined();
     expect(
-      screen.getByRole("link", { name: "Return to library" }),
+      screen.getByRole("link", { name: "ライブラリに戻る" }),
     ).toHaveProperty("href", `${window.location.origin}/streams`);
+  });
+
+  it("does not keep showing the previous stream when browser history points to a missing one", async () => {
+    const missingId = "c56a4180-65aa-42ec-a945-5fd21dec0538";
+    window.history.replaceState(null, "", `/streams/${collectedStream.id}`);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const requestUrl = String(input);
+        if (requestUrl === "/v1/streams?limit=20&offset=0") {
+          return jsonResponse({
+            items: [collectedStream],
+            limit: 20,
+            offset: 0,
+          });
+        }
+        if (requestUrl === `/v1/streams/${collectedStream.id}`) {
+          return jsonResponse(collectedStream);
+        }
+        if (requestUrl === `/v1/streams/${missingId}`) {
+          return jsonResponse(
+            {
+              title: "Stream not found",
+              status: 404,
+              detail: "The requested stream does not exist.",
+              code: "STREAM_NOT_FOUND",
+            },
+            404,
+          );
+        }
+        if (requestUrl.endsWith("/collections/latest")) {
+          return jsonResponse(
+            {
+              title: "Collection job not found",
+              status: 404,
+              detail: "No collection has been requested for this stream.",
+              code: "COLLECTION_JOB_NOT_FOUND",
+            },
+            404,
+          );
+        }
+        throw new Error(`Unexpected request: ${requestUrl}`);
+      }),
+    );
+
+    render(<App />);
+    expect(
+      await screen.findByRole("heading", { name: collectedStream.title }),
+    ).toBeDefined();
+
+    act(() => {
+      window.history.pushState(null, "", `/streams/${missingId}`);
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "ストリームが見つかりません",
+      }),
+    ).toBeDefined();
+    expect(
+      screen.queryByRole("heading", { name: collectedStream.title }),
+    ).toBeNull();
   });
 });
 
 describe("chat replay collection", () => {
+  it("keeps playback and chat controls in the same workspace", async () => {
+    window.history.replaceState(null, "", `/streams/${collectedStream.id}`);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const requestUrl = String(input);
+        if (requestUrl === `/v1/streams/${collectedStream.id}`) {
+          return jsonResponse(collectedStream);
+        }
+        if (
+          requestUrl === `/v1/streams/${collectedStream.id}/collections/latest`
+        ) {
+          return jsonResponse({
+            ...failedCollection,
+            status: "succeeded",
+            error: undefined,
+          });
+        }
+        if (
+          requestUrl ===
+          `/v1/streams/${collectedStream.id}/chat-messages?limit=50`
+        ) {
+          return jsonResponse({ items: [] });
+        }
+        throw new Error(`Unexpected request: ${requestUrl}`);
+      }),
+    );
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: collectedStream.title }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("region", { name: "動画プレビュー" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("complementary", { name: "チャットと収集" }),
+    ).toBeDefined();
+    expect(
+      await screen.findByRole("search", { name: "収集済みチャットを検索" }),
+    ).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: "右パネルを閉じる" }));
+    expect(
+      screen.queryByRole("complementary", { name: "チャットと収集" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "右パネルを開く" }));
+    expect(
+      await screen.findByRole("complementary", { name: "チャットと収集" }),
+    ).toBeDefined();
+  });
+
   it.each([
-    ["running", "Running"],
-    ["no_data", "No data"],
+    ["running", "収集中"],
+    ["no_data", "データなし"],
   ] as const)("displays the %s collection state", async (status, label) => {
     window.history.replaceState(null, "", `/streams/${collectedStream.id}`);
     vi.stubGlobal(
@@ -394,12 +664,12 @@ describe("chat replay collection", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<App />);
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Start collection" }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "収集を開始" }));
 
-    expect(await screen.findByText("Queued")).toBeDefined();
-    expect(screen.getByText("Waiting for an available worker…")).toBeDefined();
+    expect(await screen.findByText("待機中")).toBeDefined();
+    expect(
+      screen.getByText("処理を開始できるワーカーを待っています…"),
+    ).toBeDefined();
     expect(fetchMock).toHaveBeenCalledWith(
       `/v1/streams/${collectedStream.id}/collections`,
       { method: "POST" },
@@ -479,12 +749,12 @@ describe("chat replay collection", () => {
     render(<App />);
     expect(
       await screen.findByText(
-        "YouTube temporarily rejected the collection request.",
+        "YouTube から一時的にデータを取得できませんでした。再試行してください。",
       ),
     ).toBeDefined();
-    fireEvent.click(screen.getByRole("button", { name: "Retry collection" }));
+    fireEvent.click(screen.getByRole("button", { name: "収集を再試行" }));
 
-    expect(await screen.findByText("Succeeded")).toBeDefined();
+    expect(await screen.findByText("完了")).toBeDefined();
     expect(screen.getByText("3")).toBeDefined();
     const messages = await screen.findAllByRole("listitem");
     expect(messages.map((message) => message.textContent)).toEqual([
@@ -492,7 +762,7 @@ describe("chat replay collection", () => {
       "1:05Second viewerLater message",
     ]);
 
-    fireEvent.click(screen.getByRole("button", { name: "Load more chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
     expect(await screen.findByText("Final message")).toBeDefined();
     expect(screen.getByText("1:02:08")).toBeDefined();
   });

@@ -148,20 +148,20 @@ export function YouTubePlayer({
     <section className="player-panel" aria-labelledby="player-title">
       <div className="player-heading">
         <div>
-          <p className="eyebrow">YouTube playback</p>
-          <h2 id="player-title">Synchronized playback</h2>
+          <p className="eyebrow">YouTube 再生</p>
+          <h2 id="player-title">動画プレビュー</h2>
         </div>
         <span className="playback-time" aria-live="polite">
-          Playback {formatOffset(currentOffsetMilliseconds)}
+          再生位置 {formatOffset(currentOffsetMilliseconds)}
         </span>
       </div>
       <div className="player-frame" ref={containerRef} />
       <p className={`player-state player-state-${status}`} role="status">
         {status === "loading"
-          ? "Loading YouTube player…"
+          ? "YouTube プレイヤーを読み込んでいます…"
           : status === "ready"
-            ? "Player ready"
-            : "This video cannot be played in the embedded player."}
+            ? "再生できます"
+            : "この動画は埋め込みプレイヤーで再生できません。"}
       </p>
       {status === "unavailable" ? (
         <a
@@ -170,7 +170,7 @@ export function YouTubePlayer({
           target="_blank"
           rel="noreferrer"
         >
-          Open this video on YouTube
+          YouTube で動画を開く
         </a>
       ) : null}
     </section>

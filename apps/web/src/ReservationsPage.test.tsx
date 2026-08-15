@@ -52,19 +52,17 @@ it("creates and cancels a reservation through its detail", async () => {
     await screen.findByRole("textbox", { name: "YouTube URL" }),
     { target: { value: reservation.sourceUrl } },
   );
-  fireEvent.click(screen.getByRole("button", { name: "Create reservation" }));
+  fireEvent.click(screen.getByRole("button", { name: "収集を予約" }));
   expect(
-    await screen.findByRole("heading", { name: "Scheduled" }),
+    await screen.findByRole("heading", { name: "配信待ち" }),
   ).toBeDefined();
-  expect(screen.getByText(/approaches its scheduled start/)).toBeDefined();
+  expect(screen.getByText(/配信予定時刻が近づくまで待機/)).toBeDefined();
 
-  fireEvent.click(screen.getByRole("button", { name: "Cancel reservation" }));
+  fireEvent.click(screen.getByRole("button", { name: "予約をキャンセル" }));
   expect(
-    await screen.findByRole("heading", { name: "Canceled" }),
+    await screen.findByRole("heading", { name: "キャンセル済み" }),
   ).toBeDefined();
-  expect(
-    screen.queryByRole("button", { name: "Cancel reservation" }),
-  ).toBeNull();
+  expect(screen.queryByRole("button", { name: "予約をキャンセル" })).toBeNull();
 });
 
 it("separates monitoring and collection failures", async () => {
@@ -91,11 +89,9 @@ it("separates monitoring and collection failures", async () => {
   render(<App />);
 
   expect(
-    await screen.findByRole("heading", { name: "Monitoring issue" }),
+    await screen.findByRole("heading", { name: "監視エラー" }),
   ).toBeDefined();
-  expect(
-    screen.getByRole("heading", { name: "Collection issue" }),
-  ).toBeDefined();
+  expect(screen.getByRole("heading", { name: "収集エラー" })).toBeDefined();
 });
 
 function jsonResponse(body: unknown, status = 200): Response {
