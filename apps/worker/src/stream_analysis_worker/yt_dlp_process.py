@@ -27,6 +27,7 @@ class YtDlpFailureReason(StrEnum):
     """Safe, allowlisted interpretation of pinned yt-dlp failure output."""
 
     ACCESS_DENIED = "access_denied"
+    REPLAY_NOT_AVAILABLE = "replay_not_available"
 
 
 @dataclass(frozen=True, slots=True)
@@ -247,6 +248,8 @@ def _classify_failure(stderr: bytes) -> YtDlpFailureReason | None:
     )
     if any(marker in normalized for marker in access_denied_markers):
         return YtDlpFailureReason.ACCESS_DENIED
+    if "video unavailable" in normalized:
+        return YtDlpFailureReason.REPLAY_NOT_AVAILABLE
     return None
 
 

@@ -117,6 +117,12 @@ class YtDlpChatReplayCollector:
                     retryable=False,
                     safe_message="YouTube denied access to this video.",
                 )
+            if process_result.failure_reason is YtDlpFailureReason.REPLAY_NOT_AVAILABLE:
+                raise CollectionFailure(
+                    code=CollectionErrorCode.CHAT_REPLAY_NOT_AVAILABLE,
+                    retryable=False,
+                    safe_message="Chat replay is not available for this stream.",
+                )
             if process_result.exit_code != 0:
                 raise CollectionFailure(
                     code=CollectionErrorCode.YTDLP_PROCESS_FAILED,

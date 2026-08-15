@@ -183,6 +183,36 @@ def test_collector_maps_access_denied_to_a_safe_non_retryable_failure(
     assert list(tmp_path.iterdir()) == []
 
 
+def test_collector_maps_unavailable_replay_to_a_safe_non_retryable_failure(
+    tmp_path: Path,
+) -> None:
+    output = io.StringIO()
+    collector = YtDlpChatReplayCollector(
+        process=ReplayUnavailableProcess(),
+        messages=UnusedMessageRepository(),
+        attempt_root=tmp_path,
+        metric_sink=JsonMetricSink(output),
+    )
+    request = CollectionRequest(
+        collection_job_id=UUID("20000000-0000-0000-0000-000000000001"),
+        stream_id=UUID("10000000-0000-0000-0000-000000000001"),
+        canonical_youtube_url="https://www.youtube.com/watch?v=fixture",
+        attempt=1,
+        deadline=datetime.now(UTC) + timedelta(minutes=1),
+    )
+
+    with pytest.raises(CollectionFailure) as caught:
+        collector.collect(request, Event())
+
+    assert caught.value.code is CollectionErrorCode.CHAT_REPLAY_NOT_AVAILABLE
+    assert caught.value.retryable is False
+    assert caught.value.safe_message == "Chat replay is not available for this stream."
+    assert "Video unavailable" not in str(caught.value)
+    event = json.loads(output.getvalue().splitlines()[-1])
+    assert event["error_code"] == "CHAT_REPLAY_NOT_AVAILABLE"
+    assert list(tmp_path.iterdir()) == []
+
+
 def test_collector_classifies_low_disk_capacity_without_starting_process(
     tmp_path: Path,
 ) -> None:
@@ -268,6 +298,20 @@ class AccessDeniedProcess:
             yt_dlp_version="2026.7.4",
             duration=timedelta(milliseconds=250),
             failure_reason=YtDlpFailureReason.ACCESS_DENIED,
+        )
+
+
+class ReplayUnavailableProcess:
+    def run(self, request: YtDlpProcessRequest, cancellation: Event) -> YtDlpProcessResult:
+        del request, cancellation
+        return YtDlpProcessResult(
+            exit_code=1,
+            termination=ProcessTermination.EXITED,
+            artifact_path=None,
+            stderr="[REDACTED STDERR]",
+            yt_dlp_version="2026.7.4",
+            duration=timedelta(milliseconds=250),
+            failure_reason=YtDlpFailureReason.REPLAY_NOT_AVAILABLE,
         )
 
 

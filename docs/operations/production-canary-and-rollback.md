@@ -70,6 +70,7 @@ content.
 | Short replay       | succeeds; stored count equals saved count                                   |
 | High-volume replay | succeeds within the release timeout and memory/batch gates                  |
 | Replay unavailable | finishes as public `no_data` with no artifact                               |
+| Source unavailable | bounded non-retryable `CHAT_REPLAY_NOT_AVAILABLE`; no upstream text leaks   |
 | Access denied      | bounded non-retryable `YOUTUBE_ACCESS_DENIED`; no upstream text leaks       |
 | Archive not ready  | no premature collection; reservation remains waiting and retries monitoring |
 
