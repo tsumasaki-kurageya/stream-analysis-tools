@@ -37,3 +37,8 @@ API's opaque cursor. This keeps pagination stable when multiple messages share a
 `000005_add_chat_search_trigram_index` enables `pg_trgm` and adds a GIN trigram index for
 case-insensitive partial matching on chat message text. Search remains stream-scoped through the
 existing timeline/cursor indexes.
+
+`000006_create_reservations` creates the long-lived reservation state and transition audit tables.
+It records monitoring errors separately from collection failures, supports lease and optimistic-lock
+coordination, prevents more than one active reservation per video, and links at most one collection
+job to each reservation.
