@@ -10,7 +10,7 @@ requires-python = ">=3.12,<3.15"
 dependencies = [
   "psycopg[binary]==3.3.4",
   "psycopg-pool==3.3.1",
-  "yt-dlp==2026.7.4",
+  "yt-dlp==2026.6.9",
 ]
 
 [project.scripts]

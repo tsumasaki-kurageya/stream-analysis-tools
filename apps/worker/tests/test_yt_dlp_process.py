@@ -63,7 +63,7 @@ def test_subprocess_adapter_uses_controlled_argv_and_returns_the_final_artifact(
     assert result.termination is ProcessTermination.EXITED
     assert result.artifact_path == attempt_directory / "fixture.live_chat.json"
     assert result.artifact_path.read_text(encoding="utf-8") == '{"fixture":true}\n'
-    assert result.yt_dlp_version == "2026.7.4"
+    assert result.yt_dlp_version == "2026.6.9"
     assert result.duration >= timedelta(0)
 
 
