@@ -69,6 +69,19 @@ export function listChatMessages(
   );
 }
 
+export function searchChatMessages(
+  streamId: string,
+  query: string,
+  limit = 50,
+  cursor?: string,
+): Promise<ChatMessagePage> {
+  const search = new URLSearchParams({ q: query, limit: String(limit) });
+  if (cursor) search.set("cursor", cursor);
+  return request(
+    `/v1/streams/${encodeURIComponent(streamId)}/chat-search?${search}`,
+  );
+}
+
 export async function findStreamByYouTubeVideoId(
   youtubeVideoId: string,
 ): Promise<Stream | undefined> {

@@ -64,6 +64,17 @@ test("starts, restores, retries, and browses a chat collection", async ({
   await expect(
     page.getByText("YouTube temporarily rejected the collection request."),
   ).toBeVisible({ timeout: 7_000 });
+  await expect(
+    page.getByText(
+      "1 chat message could not be persisted. Available messages remain searchable.",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("search", { name: "Search collected chat" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("list", { name: "Collected chat" }).getByRole("listitem"),
+  ).toHaveCount(2);
 
   await page.getByRole("button", { name: "Retry collection" }).click();
   await expect(page.getByText("Queued")).toBeVisible();
@@ -112,6 +123,39 @@ test("keeps chat synchronized with playback and seeks from a message", async ({
   );
   await expect(page.getByText("Playback 0:05")).toBeVisible();
   await expect(page.getByText("Fake player at 5 seconds")).toBeVisible();
+});
+
+test("searches chat and seeks playback from a keyboard-selected result", async ({
+  page,
+}) => {
+  await installSynchronizedPlaybackApi(page);
+  await installFakeYouTubePlayer(page);
+  await page.goto(`/streams/${streamId}`);
+
+  await expect(page.getByText("Player ready")).toBeVisible();
+  const search = page.getByRole("search", { name: "Search collected chat" });
+  await search
+    .getByRole("searchbox", { name: "Search collected chat" })
+    .fill("later");
+  await page.keyboard.press("Enter");
+
+  const results = page.getByRole("list", { name: "Chat search results" });
+  await expect(results).toContainText("Later message");
+  const result = results.getByRole("button", {
+    name: "Seek to 1:05: Later message",
+  });
+  await result.focus();
+  await page.keyboard.press("Enter");
+
+  await expect(page.getByText("Playback 1:05")).toBeVisible();
+  await expect(page.getByText("Fake player at 65 seconds")).toBeVisible();
+  await expect(result).toHaveAttribute("aria-current", "time");
+  await expect(
+    page
+      .getByRole("list", { name: "Collected chat" })
+      .getByRole("listitem")
+      .nth(1),
+  ).toHaveAttribute("aria-current", "time");
 });
 
 test("keeps collected chat available when YouTube embedding fails", async ({
@@ -373,7 +417,8 @@ async function installSynchronizedPlaybackApi(page: Page) {
 
   await page.route("**/v1/**", async (route) => {
     const request = route.request();
-    const { pathname } = new URL(request.url());
+    const url = new URL(request.url());
+    const { pathname } = url;
     if (pathname === `/v1/streams/${streamId}`) {
       await route.fulfill({ json: savedStream });
       return;
@@ -407,6 +452,27 @@ async function installSynchronizedPlaybackApi(page: Page) {
               offsetMilliseconds: 5_000,
               messageType: "text",
             },
+            {
+              id: "547ec39e-d9e7-497a-86f1-6d154ff08b78",
+              authorDisplayName: "Second viewer",
+              messageText: "Later message",
+              publishedAt: "2026-08-10T10:01:05Z",
+              offsetMilliseconds: 65_000,
+              messageType: "text",
+            },
+          ],
+        },
+      });
+      return;
+    }
+    if (pathname === `/v1/streams/${streamId}/chat-search`) {
+      if (url.searchParams.get("q") !== "later") {
+        await route.abort("failed");
+        return;
+      }
+      await route.fulfill({
+        json: {
+          items: [
             {
               id: "547ec39e-d9e7-497a-86f1-6d154ff08b78",
               authorDisplayName: "Second viewer",

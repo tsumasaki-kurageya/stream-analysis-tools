@@ -9,6 +9,7 @@ import {
   listStreams,
   previewStream,
   retryCollection,
+  searchChatMessages,
   startCollection,
   type ChatMessage,
   type CollectionJob,
@@ -137,7 +138,7 @@ export function App() {
           </span>
           <span>Stream Analysis</span>
         </a>
-        <span className="milestone">M3 · Synchronized playback</span>
+        <span className="milestone">M3 · Synchronized exploration</span>
       </header>
 
       <main>
@@ -497,6 +498,14 @@ function CollectionWorkspace({
             </div>
           </div>
 
+          {collection.skippedCount > 0 ? (
+            <p className="collection-notice" role="status">
+              {collection.skippedCount.toLocaleString()} chat{" "}
+              {collection.skippedCount === 1 ? "message" : "messages"} could not
+              be persisted. Available messages remain searchable.
+            </p>
+          ) : null}
+
           {isActive ? (
             <p className="collection-activity" role="status">
               <span aria-hidden="true" />
@@ -539,15 +548,134 @@ function CollectionWorkspace({
           ) : null}
 
           {!isActive ? (
-            <ChatMessageList
-              key={streamId}
-              streamId={streamId}
-              playbackOffsetMilliseconds={playbackOffsetMilliseconds}
-              onSeek={onSeek}
-            />
+            <>
+              <ChatSearch
+                streamId={streamId}
+                playbackOffsetMilliseconds={playbackOffsetMilliseconds}
+                onSeek={onSeek}
+              />
+              <ChatMessageList
+                key={streamId}
+                streamId={streamId}
+                playbackOffsetMilliseconds={playbackOffsetMilliseconds}
+                onSeek={onSeek}
+              />
+            </>
           ) : null}
         </>
       )}
+    </section>
+  );
+}
+
+function ChatSearch({
+  streamId,
+  playbackOffsetMilliseconds,
+  onSeek,
+}: {
+  streamId: string;
+  playbackOffsetMilliseconds: number;
+  onSeek: (offsetMilliseconds: number) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [results, setResults] = useState<ChatMessage[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const nextQuery = query.trim();
+    setIsSearching(true);
+    setError(null);
+    try {
+      const page = await searchChatMessages(streamId, nextQuery);
+      setResults(page.items);
+      setSubmittedQuery(nextQuery);
+    } catch (requestError) {
+      setError(collectionErrorMessage(requestError));
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  return (
+    <section className="chat-search" aria-labelledby="chat-search-title">
+      <div className="chat-heading">
+        <div>
+          <p className="eyebrow">Find a moment</p>
+          <h3 id="chat-search-title">Search chat</h3>
+        </div>
+      </div>
+      <form
+        className="chat-search-form"
+        role="search"
+        aria-label="Search collected chat"
+        onSubmit={submitSearch}
+      >
+        <label htmlFor="chat-search-query">Search collected chat</label>
+        <div className="input-row">
+          <input
+            id="chat-search-query"
+            type="search"
+            minLength={3}
+            maxLength={100}
+            required
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search message text"
+          />
+          <button type="submit" disabled={isSearching}>
+            {isSearching ? "Searching…" : "Search chat"}
+          </button>
+        </div>
+      </form>
+
+      {error ? (
+        <p className="inline-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {submittedQuery ? (
+        results.length === 0 ? (
+          <p className="chat-empty" role="status">
+            No messages found for “{submittedQuery}”.
+          </p>
+        ) : (
+          <>
+            <p className="search-summary" role="status">
+              {results.length} {results.length === 1 ? "result" : "results"} for
+              “{submittedQuery}”
+            </p>
+            <ol className="search-results" aria-label="Chat search results">
+              {results.map((message) => {
+                const isCurrent =
+                  Math.abs(
+                    message.offsetMilliseconds - playbackOffsetMilliseconds,
+                  ) < 1_000;
+                return (
+                  <li key={message.id}>
+                    <button
+                      type="button"
+                      aria-current={isCurrent ? "time" : undefined}
+                      aria-label={`Seek to ${formatOffset(message.offsetMilliseconds)}: ${message.messageText}`}
+                      onClick={() => onSeek(message.offsetMilliseconds)}
+                    >
+                      <time dateTime={message.publishedAt}>
+                        {formatOffset(message.offsetMilliseconds)}
+                      </time>
+                      <span>
+                        <strong>{message.authorDisplayName}</strong>
+                        {message.messageText}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </>
+        )
+      ) : null}
     </section>
   );
 }
