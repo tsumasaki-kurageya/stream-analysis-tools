@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/collections"
 	openapiv1 "github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/generated/openapiv1"
+	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/reservations"
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/streams"
 )
 
@@ -276,6 +277,54 @@ func TestCollectionAPIRejectsCollectorSpecificOptions(t *testing.T) {
 	}
 }
 
+func TestReservationAPICreatesListsReadsAndCancels(t *testing.T) {
+	now := time.Date(2026, 8, 15, 12, 0, 0, 0, time.UTC)
+	service := &reservationServiceStub{item: reservations.Reservation{
+		ID: uuid.New(), YouTubeVideoID: "dQw4w9WgXcQ", SourceURL: validYouTubeURL,
+		State: reservations.StateScheduled, NextCheckAt: now, CreatedAt: now, UpdatedAt: now,
+	}}
+	handler := NewHandlerWithReservations(nil, nil, service)
+
+	createdResponse := performJSONRequest(t, handler, http.MethodPost, "/v1/reservations", map[string]string{"url": validYouTubeURL})
+	if createdResponse.Code != http.StatusCreated {
+		t.Fatalf("expected create status 201, got %d: %s", createdResponse.Code, createdResponse.Body.String())
+	}
+	var created openapiv1.Reservation
+	decodeJSON(t, createdResponse, &created)
+	if !created.CanCancel || created.State != openapiv1.ReservationState("scheduled") || service.createdURL != validYouTubeURL {
+		t.Fatalf("unexpected created reservation: %+v", created)
+	}
+	if createdResponse.Header().Get("Location") != "/v1/reservations/"+service.item.ID.String() {
+		t.Fatalf("unexpected Location: %q", createdResponse.Header().Get("Location"))
+	}
+
+	listedResponse := performJSONRequest(t, handler, http.MethodGet, "/v1/reservations?limit=10&offset=2", nil)
+	var listed openapiv1.ReservationList
+	decodeJSON(t, listedResponse, &listed)
+	if listed.Total != 1 || listed.Limit != 10 || listed.Offset != 2 || service.options != (reservations.ListOptions{Limit: 10, Offset: 2}) {
+		t.Fatalf("unexpected reservation list: %+v", listed)
+	}
+
+	detailResponse := performJSONRequest(t, handler, http.MethodGet, "/v1/reservations/"+service.item.ID.String(), nil)
+	if detailResponse.Code != http.StatusOK {
+		t.Fatalf("expected detail status 200, got %d", detailResponse.Code)
+	}
+
+	cancelResponse := performJSONRequest(t, handler, http.MethodPost, "/v1/reservations/"+service.item.ID.String()+"/cancel", nil)
+	var canceled openapiv1.Reservation
+	decodeJSON(t, cancelResponse, &canceled)
+	if canceled.State != openapiv1.ReservationState("canceled") || canceled.CanCancel {
+		t.Fatalf("unexpected canceled reservation: %+v", canceled)
+	}
+}
+
+func TestReservationAPIUsesStableProblems(t *testing.T) {
+	service := &reservationServiceStub{err: reservations.ErrAlreadyActive}
+	handler := NewHandlerWithReservations(nil, nil, service)
+	response := performJSONRequest(t, handler, http.MethodPost, "/v1/reservations", map[string]string{"url": validYouTubeURL})
+	assertProblem(t, response, http.StatusConflict, "RESERVATION_ALREADY_ACTIVE")
+}
+
 func TestCollectionAPIReturnsStableRetryConflict(t *testing.T) {
 	service := &collectionServiceStub{err: collections.ErrNotRetryable}
 	handler := NewHandler(nil, service)
@@ -348,6 +397,32 @@ type collectionServiceStub struct {
 	cursor     string
 	query      string
 	startCalls int
+}
+
+type reservationServiceStub struct {
+	item       reservations.Reservation
+	err        error
+	createdURL string
+	options    reservations.ListOptions
+}
+
+func (service *reservationServiceStub) Create(_ context.Context, rawURL string) (reservations.Reservation, error) {
+	service.createdURL = rawURL
+	return service.item, service.err
+}
+
+func (service *reservationServiceStub) List(_ context.Context, options reservations.ListOptions) ([]reservations.Reservation, int, error) {
+	service.options = options
+	return []reservations.Reservation{service.item}, 1, service.err
+}
+
+func (service *reservationServiceStub) Get(context.Context, uuid.UUID) (reservations.Reservation, error) {
+	return service.item, service.err
+}
+
+func (service *reservationServiceStub) Cancel(context.Context, uuid.UUID) (reservations.Reservation, error) {
+	service.item.State = reservations.StateCanceled
+	return service.item, service.err
 }
 
 func (service *collectionServiceStub) Start(context.Context, uuid.UUID) (collections.Job, error) {

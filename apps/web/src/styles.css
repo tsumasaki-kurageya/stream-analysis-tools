@@ -97,6 +97,26 @@ input:focus-visible {
   letter-spacing: 0.08em;
 }
 
+.site-nav {
+  display: flex;
+  gap: 0.35rem;
+  margin-left: auto;
+  margin-right: 1rem;
+}
+
+.site-nav a {
+  border-radius: 999px;
+  padding: 0.55rem 0.8rem;
+  color: var(--navy);
+  font-size: 0.85rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.site-nav a:hover {
+  background: rgb(255 253 248 / 80%);
+}
+
 .milestone,
 .count {
   border: 1px solid var(--line);
@@ -114,6 +134,142 @@ main {
   width: min(72rem, calc(100% - 3rem));
   margin: 0 auto;
   padding: 4.5rem 0 6rem;
+}
+
+.reservation-hero {
+  background:
+    linear-gradient(120deg, rgb(19 44 57 / 96%), rgb(23 107 104 / 94%)),
+    var(--navy);
+}
+
+.reservation-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.reservation-row {
+  display: grid;
+  grid-template-columns: minmax(8.5rem, auto) minmax(8rem, 0.6fr) 1fr;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1rem 1.2rem;
+  background: var(--paper);
+  color: var(--muted);
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgb(19 44 57 / 5%);
+}
+
+.reservation-row:hover {
+  border-color: var(--teal);
+}
+
+.reservation-row strong {
+  color: var(--navy);
+}
+
+.reservation-detail {
+  max-width: 58rem;
+  margin: 0 auto;
+}
+
+.reservation-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-top: 2rem;
+  border-radius: 1.5rem;
+  padding: clamp(1.5rem, 5vw, 3rem);
+  background: var(--navy);
+  color: white;
+  box-shadow: var(--shadow);
+}
+
+.reservation-detail-heading h1 {
+  margin: 0.25rem 0 0;
+  font-size: clamp(2.2rem, 6vw, 4rem);
+}
+
+.reservation-detail-heading .lede {
+  margin-bottom: 0;
+}
+
+.reservation-metadata {
+  margin: 1.25rem 0 0;
+}
+
+.reservation-issue {
+  margin-top: 1.25rem;
+  border: 1px solid #d85d46;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: #fff0eb;
+  color: #7c2819;
+}
+
+.reservation-issue h2,
+.reservation-issue p {
+  margin: 0;
+}
+
+.reservation-issue h2 {
+  font-size: 1rem;
+}
+
+.reservation-issue p {
+  margin-top: 0.4rem;
+  font-weight: 700;
+}
+
+.reservation-issue span {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.reservation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.reservation-actions a {
+  color: var(--teal-dark);
+  font-weight: 750;
+}
+
+.reservation-actions .primary-link {
+  border-radius: 0.75rem;
+  padding: 0.8rem 1rem;
+  background: var(--teal);
+  color: white;
+  text-decoration: none;
+}
+
+.reservation-status-live,
+.reservation-status-monitoring,
+.reservation-status-collecting {
+  background: #fff0c2;
+  color: #765910;
+}
+
+.reservation-status-completed {
+  background: #dff3ec;
+  color: #176058;
+}
+
+.reservation-status-failed {
+  background: #ffe2dc;
+  color: #a13622;
+}
+
+.reservation-status-canceled {
+  background: #e9edf0;
+  color: #53626b;
 }
 
 .hero {
@@ -973,6 +1129,25 @@ button:disabled {
   .search-results button {
     grid-template-columns: 3.5rem minmax(0, 1fr);
     gap: 0.65rem;
+  }
+
+  .site-nav {
+    margin-right: 0;
+  }
+
+  .site-nav a {
+    padding-inline: 0.55rem;
+    font-size: 0.78rem;
+  }
+
+  .reservation-row {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .reservation-detail-heading {
+    flex-direction: column-reverse;
+    gap: 1rem;
   }
 }
 

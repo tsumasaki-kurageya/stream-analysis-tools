@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // Defines values for ChatMessageMessageType.
@@ -64,25 +65,25 @@ func (e CollectionJobKind) Valid() bool {
 
 // Defines values for CollectionJobStatus.
 const (
-	Failed    CollectionJobStatus = "failed"
-	NoData    CollectionJobStatus = "no_data"
-	Queued    CollectionJobStatus = "queued"
-	Running   CollectionJobStatus = "running"
-	Succeeded CollectionJobStatus = "succeeded"
+	CollectionJobStatusFailed    CollectionJobStatus = "failed"
+	CollectionJobStatusNoData    CollectionJobStatus = "no_data"
+	CollectionJobStatusQueued    CollectionJobStatus = "queued"
+	CollectionJobStatusRunning   CollectionJobStatus = "running"
+	CollectionJobStatusSucceeded CollectionJobStatus = "succeeded"
 )
 
 // Valid indicates whether the value is a known member of the CollectionJobStatus enum.
 func (e CollectionJobStatus) Valid() bool {
 	switch e {
-	case Failed:
+	case CollectionJobStatusFailed:
 		return true
-	case NoData:
+	case CollectionJobStatusNoData:
 		return true
-	case Queued:
+	case CollectionJobStatusQueued:
 		return true
-	case Running:
+	case CollectionJobStatusRunning:
 		return true
-	case Succeeded:
+	case CollectionJobStatusSucceeded:
 		return true
 	default:
 		return false
@@ -104,27 +105,63 @@ func (e HealthResponseStatus) Valid() bool {
 	}
 }
 
+// Defines values for ReservationState.
+const (
+	ReservationStateCanceled          ReservationState = "canceled"
+	ReservationStateCollecting        ReservationState = "collecting"
+	ReservationStateCompleted         ReservationState = "completed"
+	ReservationStateFailed            ReservationState = "failed"
+	ReservationStateLive              ReservationState = "live"
+	ReservationStateMonitoring        ReservationState = "monitoring"
+	ReservationStateScheduled         ReservationState = "scheduled"
+	ReservationStateWaitingForArchive ReservationState = "waiting_for_archive"
+)
+
+// Valid indicates whether the value is a known member of the ReservationState enum.
+func (e ReservationState) Valid() bool {
+	switch e {
+	case ReservationStateCanceled:
+		return true
+	case ReservationStateCollecting:
+		return true
+	case ReservationStateCompleted:
+		return true
+	case ReservationStateFailed:
+		return true
+	case ReservationStateLive:
+		return true
+	case ReservationStateMonitoring:
+		return true
+	case ReservationStateScheduled:
+		return true
+	case ReservationStateWaitingForArchive:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for StreamLifecycleStatus.
 const (
-	Ended       StreamLifecycleStatus = "ended"
-	Live        StreamLifecycleStatus = "live"
-	Scheduled   StreamLifecycleStatus = "scheduled"
-	Unavailable StreamLifecycleStatus = "unavailable"
-	Unknown     StreamLifecycleStatus = "unknown"
+	StreamLifecycleStatusEnded       StreamLifecycleStatus = "ended"
+	StreamLifecycleStatusLive        StreamLifecycleStatus = "live"
+	StreamLifecycleStatusScheduled   StreamLifecycleStatus = "scheduled"
+	StreamLifecycleStatusUnavailable StreamLifecycleStatus = "unavailable"
+	StreamLifecycleStatusUnknown     StreamLifecycleStatus = "unknown"
 )
 
 // Valid indicates whether the value is a known member of the StreamLifecycleStatus enum.
 func (e StreamLifecycleStatus) Valid() bool {
 	switch e {
-	case Ended:
+	case StreamLifecycleStatusEnded:
 		return true
-	case Live:
+	case StreamLifecycleStatusLive:
 		return true
-	case Scheduled:
+	case StreamLifecycleStatusScheduled:
 		return true
-	case Unavailable:
+	case StreamLifecycleStatusUnavailable:
 		return true
-	case Unknown:
+	case StreamLifecycleStatusUnknown:
 		return true
 	default:
 		return false
@@ -220,6 +257,41 @@ type ProblemDetails struct {
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
+// Reservation defines model for Reservation.
+type Reservation struct {
+	ActualEndAt        *time.Time           `json:"actualEndAt,omitempty"`
+	ActualStartAt      *time.Time           `json:"actualStartAt,omitempty"`
+	CanCancel          bool                 `json:"canCancel"`
+	CollectionError    *CollectionError     `json:"collectionError,omitempty"`
+	CollectionJobId    *openapi_types.UUID  `json:"collectionJobId,omitempty"`
+	CollectionStatus   *CollectionJobStatus `json:"collectionStatus,omitempty"`
+	CreatedAt          time.Time            `json:"createdAt"`
+	Id                 openapi_types.UUID   `json:"id"`
+	LastCheckedAt      *time.Time           `json:"lastCheckedAt,omitempty"`
+	LastErrorCode      *string              `json:"lastErrorCode,omitempty"`
+	LastErrorMessage   *string              `json:"lastErrorMessage,omitempty"`
+	LastErrorRetryable *bool                `json:"lastErrorRetryable,omitempty"`
+	MonitorAttempt     int                  `json:"monitorAttempt"`
+	NextCheckAt        time.Time            `json:"nextCheckAt"`
+	ScheduledStartAt   *time.Time           `json:"scheduledStartAt,omitempty"`
+	SourceUrl          string               `json:"sourceUrl"`
+	State              ReservationState     `json:"state"`
+	StreamId           *openapi_types.UUID  `json:"streamId,omitempty"`
+	UpdatedAt          time.Time            `json:"updatedAt"`
+	YoutubeVideoId     string               `json:"youtubeVideoId"`
+}
+
+// ReservationList defines model for ReservationList.
+type ReservationList struct {
+	Items  []Reservation `json:"items"`
+	Limit  int           `json:"limit"`
+	Offset int           `json:"offset"`
+	Total  int           `json:"total"`
+}
+
+// ReservationState defines model for ReservationState.
+type ReservationState string
+
 // Stream defines model for Stream.
 type Stream struct {
 	ActualEndAt       *time.Time            `json:"actualEndAt,omitempty"`
@@ -276,11 +348,20 @@ type StreamURLInput struct {
 // JobId defines model for JobId.
 type JobId = string
 
+// ReservationId defines model for ReservationId.
+type ReservationId = string
+
 // StreamId defines model for StreamId.
 type StreamId = string
 
 // Problem RFC 9457 Problem Details object with a stable product-level code.
 type Problem = ProblemDetails
+
+// ListReservationsParams defines parameters for ListReservations.
+type ListReservationsParams struct {
+	Limit  *int `form:"limit,omitempty" json:"limit,omitempty"`
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+}
 
 // ListStreamsParams defines parameters for ListStreams.
 type ListStreamsParams struct {
@@ -311,6 +392,9 @@ type SearchChatMessagesParams struct {
 	// Cursor Opaque cursor returned by the previous search page.
 	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
 }
+
+// CreateReservationJSONRequestBody defines body for CreateReservation for application/json ContentType.
+type CreateReservationJSONRequestBody = StreamURLInput
 
 // CreateStreamJSONRequestBody defines body for CreateStream for application/json ContentType.
 type CreateStreamJSONRequestBody = StreamURLInput
@@ -461,6 +545,18 @@ type ServerInterface interface {
 	// RetryCollection Retry a failed collection
 	// (POST /v1/collection-jobs/{jobId}/retry)
 	RetryCollection(w http.ResponseWriter, r *http.Request, jobId JobId)
+	// ListReservations List stream reservations
+	// (GET /v1/reservations)
+	ListReservations(w http.ResponseWriter, r *http.Request, params ListReservationsParams)
+	// CreateReservation Create a stream reservation
+	// (POST /v1/reservations)
+	CreateReservation(w http.ResponseWriter, r *http.Request)
+	// GetReservation Get a stream reservation
+	// (GET /v1/reservations/{reservationId})
+	GetReservation(w http.ResponseWriter, r *http.Request, reservationId ReservationId)
+	// CancelReservation Cancel a stream reservation
+	// (POST /v1/reservations/{reservationId}/cancel)
+	CancelReservation(w http.ResponseWriter, r *http.Request, reservationId ReservationId)
 	// ListStreams List registered streams
 	// (GET /v1/streams)
 	ListStreams(w http.ResponseWriter, r *http.Request, params ListStreamsParams)
@@ -527,6 +623,118 @@ func (siw *ServerInterfaceWrapper) RetryCollection(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RetryCollection(w, r, jobId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListReservations operation middleware
+func (siw *ServerInterfaceWrapper) ListReservations(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListReservationsParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "offset" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "offset", r.URL.Query(), &params.Offset, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "offset"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "offset", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListReservations(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateReservation operation middleware
+func (siw *ServerInterfaceWrapper) CreateReservation(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateReservation(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetReservation operation middleware
+func (siw *ServerInterfaceWrapper) GetReservation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "reservationId" -------------
+	var reservationId ReservationId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reservationId", r.PathValue("reservationId"), &reservationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "reservationId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetReservation(w, r, reservationId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CancelReservation operation middleware
+func (siw *ServerInterfaceWrapper) CancelReservation(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "reservationId" -------------
+	var reservationId ReservationId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "reservationId", r.PathValue("reservationId"), &reservationId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "reservationId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CancelReservation(w, r, reservationId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -941,6 +1149,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/collection-jobs/{jobId}/retry", wrapper.RetryCollection)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/streams/{streamId}/chat-messages", wrapper.ListChatMessages)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/streams/{streamId}/chat-search", wrapper.SearchChatMessages)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/reservations", wrapper.ListReservations)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reservations", wrapper.CreateReservation)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/reservations/{reservationId}", wrapper.GetReservation)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reservations/{reservationId}/cancel", wrapper.CancelReservation)
 
 	return m
 }
@@ -1053,6 +1265,264 @@ type RetryCollectiondefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response RetryCollectiondefaultApplicationProblemPlusJSONResponse) VisitRetryCollectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReservationsRequestObject struct {
+	Params ListReservationsParams
+}
+
+type ListReservationsResponseObject interface {
+	VisitListReservationsResponse(w http.ResponseWriter) error
+}
+
+type ListReservations200JSONResponse ReservationList
+
+func (response ListReservations200JSONResponse) VisitListReservationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReservations400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListReservations400ApplicationProblemPlusJSONResponse) VisitListReservationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListReservationsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       ProblemDetails
+	StatusCode int
+}
+
+func (response ListReservationsdefaultApplicationProblemPlusJSONResponse) VisitListReservationsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReservationRequestObject struct {
+	Body *CreateReservationJSONRequestBody
+}
+
+type CreateReservationResponseObject interface {
+	VisitCreateReservationResponse(w http.ResponseWriter) error
+}
+
+type CreateReservation201ResponseHeaders struct {
+	Location *string
+}
+
+type CreateReservation201JSONResponse struct {
+	Body    Reservation
+	Headers CreateReservation201ResponseHeaders
+}
+
+func (response CreateReservation201JSONResponse) VisitCreateReservationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.Location != nil {
+		w.Header().Set("Location", fmt.Sprint(*response.Headers.Location))
+	}
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReservation400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreateReservation400ApplicationProblemPlusJSONResponse) VisitCreateReservationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReservation409ApplicationProblemPlusJSONResponse ProblemDetails
+
+func (response CreateReservation409ApplicationProblemPlusJSONResponse) VisitCreateReservationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateReservationdefaultApplicationProblemPlusJSONResponse struct {
+	Body       ProblemDetails
+	StatusCode int
+}
+
+func (response CreateReservationdefaultApplicationProblemPlusJSONResponse) VisitCreateReservationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReservationRequestObject struct {
+	ReservationId ReservationId `json:"reservationId"`
+}
+
+type GetReservationResponseObject interface {
+	VisitGetReservationResponse(w http.ResponseWriter) error
+}
+
+type GetReservation200JSONResponse Reservation
+
+func (response GetReservation200JSONResponse) VisitGetReservationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReservation404ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetReservation404ApplicationProblemPlusJSONResponse) VisitGetReservationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetReservationdefaultApplicationProblemPlusJSONResponse struct {
+	Body       ProblemDetails
+	StatusCode int
+}
+
+func (response GetReservationdefaultApplicationProblemPlusJSONResponse) VisitGetReservationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelReservationRequestObject struct {
+	ReservationId ReservationId `json:"reservationId"`
+}
+
+type CancelReservationResponseObject interface {
+	VisitCancelReservationResponse(w http.ResponseWriter) error
+}
+
+type CancelReservation200JSONResponse Reservation
+
+func (response CancelReservation200JSONResponse) VisitCancelReservationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelReservation404ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CancelReservation404ApplicationProblemPlusJSONResponse) VisitCancelReservationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelReservation409ApplicationProblemPlusJSONResponse ProblemDetails
+
+func (response CancelReservation409ApplicationProblemPlusJSONResponse) VisitCancelReservationResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CancelReservationdefaultApplicationProblemPlusJSONResponse struct {
+	Body       ProblemDetails
+	StatusCode int
+}
+
+func (response CancelReservationdefaultApplicationProblemPlusJSONResponse) VisitCancelReservationResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -1632,6 +2102,18 @@ type StrictServerInterface interface {
 	// RetryCollection Retry a failed collection
 	// (POST /v1/collection-jobs/{jobId}/retry)
 	RetryCollection(ctx context.Context, request RetryCollectionRequestObject) (RetryCollectionResponseObject, error)
+	// ListReservations List stream reservations
+	// (GET /v1/reservations)
+	ListReservations(ctx context.Context, request ListReservationsRequestObject) (ListReservationsResponseObject, error)
+	// CreateReservation Create a stream reservation
+	// (POST /v1/reservations)
+	CreateReservation(ctx context.Context, request CreateReservationRequestObject) (CreateReservationResponseObject, error)
+	// GetReservation Get a stream reservation
+	// (GET /v1/reservations/{reservationId})
+	GetReservation(ctx context.Context, request GetReservationRequestObject) (GetReservationResponseObject, error)
+	// CancelReservation Cancel a stream reservation
+	// (POST /v1/reservations/{reservationId}/cancel)
+	CancelReservation(ctx context.Context, request CancelReservationRequestObject) (CancelReservationResponseObject, error)
 	// ListStreams List registered streams
 	// (GET /v1/streams)
 	ListStreams(ctx context.Context, request ListStreamsRequestObject) (ListStreamsResponseObject, error)
@@ -1740,6 +2222,115 @@ func (sh *strictHandler) RetryCollection(w http.ResponseWriter, r *http.Request,
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(RetryCollectionResponseObject); ok {
 		if err := validResponse.VisitRetryCollectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListReservations operation middleware
+func (sh *strictHandler) ListReservations(w http.ResponseWriter, r *http.Request, params ListReservationsParams) {
+	var request ListReservationsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListReservations(ctx, request.(ListReservationsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListReservations")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListReservationsResponseObject); ok {
+		if err := validResponse.VisitListReservationsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateReservation operation middleware
+func (sh *strictHandler) CreateReservation(w http.ResponseWriter, r *http.Request) {
+	var request CreateReservationRequestObject
+
+	var body CreateReservationJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateReservation(ctx, request.(CreateReservationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateReservation")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateReservationResponseObject); ok {
+		if err := validResponse.VisitCreateReservationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetReservation operation middleware
+func (sh *strictHandler) GetReservation(w http.ResponseWriter, r *http.Request, reservationId ReservationId) {
+	var request GetReservationRequestObject
+
+	request.ReservationId = reservationId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetReservation(ctx, request.(GetReservationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetReservation")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetReservationResponseObject); ok {
+		if err := validResponse.VisitGetReservationResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CancelReservation operation middleware
+func (sh *strictHandler) CancelReservation(w http.ResponseWriter, r *http.Request, reservationId ReservationId) {
+	var request CancelReservationRequestObject
+
+	request.ReservationId = reservationId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CancelReservation(ctx, request.(CancelReservationRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CancelReservation")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CancelReservationResponseObject); ok {
+		if err := validResponse.VisitCancelReservationResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

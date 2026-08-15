@@ -17,6 +17,7 @@ import {
   type StreamPreview,
 } from "./api/client";
 import { YouTubePlayer, type PlayerSeekRequest } from "./YouTubePlayer";
+import { ReservationsPage } from "./ReservationsPage";
 
 const COLLECTION_POLL_INTERVAL_MS = 2_000;
 
@@ -51,6 +52,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    if (path.startsWith("/reservations")) return;
     const detailMatch = path.match(/^\/streams\/([^/]+)$/);
     if (detailMatch) {
       const streamId = detailMatch[1];
@@ -128,6 +130,12 @@ export function App() {
   }
 
   const detailMatch = path.match(/^\/streams\/[^/]+$/);
+  const reservationPath = path.startsWith("/reservations");
+
+  function navigate(pathname: string) {
+    window.history.pushState(null, "", pathname);
+    setPath(pathname);
+  }
 
   return (
     <div className="app-shell">
@@ -138,7 +146,11 @@ export function App() {
           </span>
           <span>Stream Analysis</span>
         </a>
-        <span className="milestone">M3 · Synchronized exploration</span>
+        <nav className="site-nav" aria-label="Primary navigation">
+          <a href="/streams">Streams</a>
+          <a href="/reservations">Reservations</a>
+        </nav>
+        <span className="milestone">M4 · Automatic collection</span>
       </header>
 
       <main>
@@ -148,7 +160,9 @@ export function App() {
             <span>{error}</span>
           </div>
         ) : null}
-        {detailMatch ? (
+        {reservationPath ? (
+          <ReservationsPage path={path} onNavigate={navigate} />
+        ) : detailMatch ? (
           selectedStream ? (
             <StreamDetail stream={selectedStream} />
           ) : notFound ? (

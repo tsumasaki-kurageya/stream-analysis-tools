@@ -7,6 +7,8 @@ export type CollectionJob = components["schemas"]["CollectionJob"];
 export type ChatMessage = components["schemas"]["ChatMessage"];
 export type ChatMessagePage = components["schemas"]["ChatMessagePage"];
 export type ProblemDetails = components["schemas"]["ProblemDetails"];
+export type Reservation = components["schemas"]["Reservation"];
+export type ReservationList = components["schemas"]["ReservationList"];
 
 export class ApiProblem extends Error {
   constructor(public readonly problem: ProblemDetails) {
@@ -37,6 +39,34 @@ export function createStream(url: string): Promise<Stream> {
 
 export function getStream(streamId: string): Promise<Stream> {
   return request(`/v1/streams/${encodeURIComponent(streamId)}`);
+}
+
+export function listReservations(
+  limit = 20,
+  offset = 0,
+): Promise<ReservationList> {
+  return request(`/v1/reservations?limit=${limit}&offset=${offset}`);
+}
+
+export function createReservation(url: string): Promise<Reservation> {
+  return request("/v1/reservations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+}
+
+export function getReservation(reservationId: string): Promise<Reservation> {
+  return request(`/v1/reservations/${encodeURIComponent(reservationId)}`);
+}
+
+export function cancelReservation(reservationId: string): Promise<Reservation> {
+  return request(
+    `/v1/reservations/${encodeURIComponent(reservationId)}/cancel`,
+    {
+      method: "POST",
+    },
+  );
 }
 
 export function startCollection(streamId: string): Promise<CollectionJob> {

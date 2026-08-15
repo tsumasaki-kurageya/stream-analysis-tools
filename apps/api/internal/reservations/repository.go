@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/streams"
@@ -35,6 +36,28 @@ const claimedReservationColumns = `
 	r.revision
 `
 
+const publicReservationColumns = `
+	r.id,
+	r.youtube_video_id,
+	r.source_url,
+	r.state,
+	r.scheduled_start_at,
+	r.actual_start_at,
+	r.actual_end_at,
+	r.next_check_at,
+	r.last_checked_at,
+	r.monitor_attempt,
+	r.last_error_code,
+	r.last_error_message,
+	r.last_error_retryable,
+	r.stream_id,
+	r.collection_job_id,
+	r.created_at,
+	r.updated_at,
+	c.status,
+	c.error_code
+`
+
 type PostgresRepository struct {
 	pool *pgxpool.Pool
 }
@@ -43,10 +66,45 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
+func (repository *PostgresRepository) Create(ctx context.Context, reservation Reservation) (Reservation, error) {
+	transaction, err := repository.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return Reservation{}, fmt.Errorf("begin reservation creation: %w", err)
+	}
+	defer func() { _ = transaction.Rollback(context.Background()) }()
+
+	var id uuid.UUID
+	err = transaction.QueryRow(ctx, `
+		INSERT INTO reservation.reservations (
+			youtube_video_id, source_url, state, next_check_at, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $4, $4)
+		RETURNING id
+	`, reservation.YouTubeVideoID, reservation.SourceURL, reservation.State, reservation.NextCheckAt).Scan(&id)
+	if err != nil {
+		var databaseError *pgconn.PgError
+		if errors.As(err, &databaseError) && databaseError.ConstraintName == "reservations_active_video_uidx" {
+			return Reservation{}, ErrAlreadyActive
+		}
+		return Reservation{}, fmt.Errorf("create reservation: %w", err)
+	}
+	if _, err := transaction.Exec(ctx, `
+		INSERT INTO reservation.reservation_transitions (
+			reservation_id, from_state, to_state, reason_code, facts, created_at
+		) VALUES ($1, NULL, $2, 'reservation_created', '{}'::jsonb, $3)
+	`, id, reservation.State, reservation.NextCheckAt); err != nil {
+		return Reservation{}, fmt.Errorf("record reservation creation: %w", err)
+	}
+	if err := transaction.Commit(ctx); err != nil {
+		return Reservation{}, fmt.Errorf("commit reservation creation: %w", err)
+	}
+	return repository.Get(ctx, id)
+}
+
 func (repository *PostgresRepository) Get(ctx context.Context, id uuid.UUID) (Reservation, error) {
-	claimed, err := scanClaimedReservation(repository.pool.QueryRow(ctx, `
-		SELECT `+claimedReservationColumns+`
+	reservation, err := scanReservation(repository.pool.QueryRow(ctx, `
+		SELECT `+publicReservationColumns+`
 		FROM reservation.reservations AS r
+		LEFT JOIN collection.collection_jobs AS c ON c.id = r.collection_job_id
 		WHERE r.id = $1
 	`, id))
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -55,7 +113,76 @@ func (repository *PostgresRepository) Get(ctx context.Context, id uuid.UUID) (Re
 	if err != nil {
 		return Reservation{}, fmt.Errorf("get reservation: %w", err)
 	}
-	return claimed.Reservation, nil
+	return reservation, nil
+}
+
+func (repository *PostgresRepository) List(ctx context.Context, options ListOptions) ([]Reservation, int, error) {
+	var total int
+	if err := repository.pool.QueryRow(ctx, "SELECT count(*) FROM reservation.reservations").Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count reservations: %w", err)
+	}
+	rows, err := repository.pool.Query(ctx, `
+		SELECT `+publicReservationColumns+`
+		FROM reservation.reservations AS r
+		LEFT JOIN collection.collection_jobs AS c ON c.id = r.collection_job_id
+		ORDER BY r.created_at DESC, r.id DESC
+		LIMIT $1 OFFSET $2
+	`, options.Limit, options.Offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list reservations: %w", err)
+	}
+	defer rows.Close()
+	items := make([]Reservation, 0)
+	for rows.Next() {
+		reservation, err := scanReservation(rows)
+		if err != nil {
+			return nil, 0, fmt.Errorf("scan reservation list: %w", err)
+		}
+		items = append(items, reservation)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate reservations: %w", err)
+	}
+	return items, total, nil
+}
+
+func (repository *PostgresRepository) Cancel(ctx context.Context, id uuid.UUID, canceledAt time.Time) (Reservation, error) {
+	transaction, err := repository.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return Reservation{}, fmt.Errorf("begin reservation cancellation: %w", err)
+	}
+	defer func() { _ = transaction.Rollback(context.Background()) }()
+	var state State
+	if err := transaction.QueryRow(ctx, `
+		SELECT state FROM reservation.reservations WHERE id = $1 FOR UPDATE
+	`, id).Scan(&state); errors.Is(err, pgx.ErrNoRows) {
+		return Reservation{}, ErrNotFound
+	} else if err != nil {
+		return Reservation{}, fmt.Errorf("lock reservation for cancellation: %w", err)
+	}
+	if !(Reservation{State: state}).CanCancel() {
+		return Reservation{}, ErrNotCancellable
+	}
+	if _, err := transaction.Exec(ctx, `
+		UPDATE reservation.reservations
+		SET state = 'canceled', canceled_at = $2, next_check_at = $2,
+		    worker_id = NULL, heartbeat_at = NULL, lease_expires_at = NULL,
+		    revision = revision + 1, updated_at = $2
+		WHERE id = $1
+	`, id, canceledAt); err != nil {
+		return Reservation{}, fmt.Errorf("cancel reservation: %w", err)
+	}
+	if _, err := transaction.Exec(ctx, `
+		INSERT INTO reservation.reservation_transitions (
+			reservation_id, from_state, to_state, reason_code, facts, created_at
+		) VALUES ($1, $2, 'canceled', 'user_canceled', '{}'::jsonb, $3)
+	`, id, state, canceledAt); err != nil {
+		return Reservation{}, fmt.Errorf("record reservation cancellation: %w", err)
+	}
+	if err := transaction.Commit(ctx); err != nil {
+		return Reservation{}, fmt.Errorf("commit reservation cancellation: %w", err)
+	}
+	return repository.Get(ctx, id)
 }
 
 func (repository *PostgresRepository) ClaimDue(
@@ -558,6 +685,61 @@ func ensureAutomaticCollectionJob(
 
 type reservationRow interface {
 	Scan(...any) error
+}
+
+func scanReservation(row reservationRow) (Reservation, error) {
+	var (
+		reservation        Reservation
+		state              string
+		scheduledStart     pgtype.Timestamptz
+		actualStart        pgtype.Timestamptz
+		actualEnd          pgtype.Timestamptz
+		lastChecked        pgtype.Timestamptz
+		lastErrorCode      pgtype.Text
+		lastErrorMessage   pgtype.Text
+		lastErrorRetryable pgtype.Bool
+		streamID           pgtype.UUID
+		collectionJobID    pgtype.UUID
+		collectionStatus   pgtype.Text
+		collectionError    pgtype.Text
+	)
+	err := row.Scan(
+		&reservation.ID,
+		&reservation.YouTubeVideoID,
+		&reservation.SourceURL,
+		&state,
+		&scheduledStart,
+		&actualStart,
+		&actualEnd,
+		&reservation.NextCheckAt,
+		&lastChecked,
+		&reservation.MonitorAttempt,
+		&lastErrorCode,
+		&lastErrorMessage,
+		&lastErrorRetryable,
+		&streamID,
+		&collectionJobID,
+		&reservation.CreatedAt,
+		&reservation.UpdatedAt,
+		&collectionStatus,
+		&collectionError,
+	)
+	if err != nil {
+		return Reservation{}, err
+	}
+	reservation.State = State(state)
+	reservation.ScheduledStartAt = timestampPointer(scheduledStart)
+	reservation.ActualStartAt = timestampPointer(actualStart)
+	reservation.ActualEndAt = timestampPointer(actualEnd)
+	reservation.LastCheckedAt = timestampPointer(lastChecked)
+	reservation.LastErrorCode = textPointer(lastErrorCode)
+	reservation.LastErrorMessage = textPointer(lastErrorMessage)
+	reservation.LastErrorRetryable = boolPointer(lastErrorRetryable)
+	reservation.StreamID = uuidPointer(streamID)
+	reservation.CollectionJobID = uuidPointer(collectionJobID)
+	reservation.CollectionStatus = textPointer(collectionStatus)
+	reservation.CollectionErrorCode = textPointer(collectionError)
+	return reservation, nil
 }
 
 func scanClaimedReservation(row reservationRow) (ClaimedReservation, error) {

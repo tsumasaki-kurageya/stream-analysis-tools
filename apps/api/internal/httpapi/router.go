@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/collections"
 	openapiv1 "github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/generated/openapiv1"
+	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/reservations"
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/streams"
 )
 
@@ -37,14 +38,23 @@ type CollectionService interface {
 	SearchMessages(context.Context, uuid.UUID, string, int, string) (collections.MessagePage, error)
 }
 
+type ReservationService interface {
+	Create(context.Context, string) (reservations.Reservation, error)
+	List(context.Context, reservations.ListOptions) ([]reservations.Reservation, int, error)
+	Get(context.Context, uuid.UUID) (reservations.Reservation, error)
+	Cancel(context.Context, uuid.UUID) (reservations.Reservation, error)
+}
+
 type server struct {
-	streams     StreamService
-	collections CollectionService
+	streams      StreamService
+	collections  CollectionService
+	reservations ReservationService
 }
 
 var _ openapiv1.StrictServerInterface = (*server)(nil)
 var _ StreamService = (*streams.Service)(nil)
 var _ CollectionService = (*collections.Service)(nil)
+var _ ReservationService = (*reservations.Service)(nil)
 
 func (*server) GetHealth(
 	context.Context,
@@ -315,12 +325,96 @@ func (server *server) SearchChatMessages(
 	}, nil
 }
 
+func (server *server) CreateReservation(
+	ctx context.Context,
+	request openapiv1.CreateReservationRequestObject,
+) (openapiv1.CreateReservationResponseObject, error) {
+	if request.Body == nil {
+		problem, status := reservationProblemFor(reservations.ErrInvalidURL)
+		return openapiv1.CreateReservationdefaultApplicationProblemPlusJSONResponse{Body: problem, StatusCode: status}, nil
+	}
+	created, err := server.reservations.Create(ctx, request.Body.Url)
+	if err != nil {
+		problem, status := reservationProblemFor(err)
+		return openapiv1.CreateReservationdefaultApplicationProblemPlusJSONResponse{Body: problem, StatusCode: status}, nil
+	}
+	location := "/v1/reservations/" + created.ID.String()
+	return openapiv1.CreateReservation201JSONResponse{
+		Body:    reservationResponse(created),
+		Headers: openapiv1.CreateReservation201ResponseHeaders{Location: &location},
+	}, nil
+}
+
+func (server *server) ListReservations(
+	ctx context.Context,
+	request openapiv1.ListReservationsRequestObject,
+) (openapiv1.ListReservationsResponseObject, error) {
+	limit, offset := defaultListLimit, defaultListOffset
+	if request.Params.Limit != nil {
+		limit = *request.Params.Limit
+	}
+	if request.Params.Offset != nil {
+		offset = *request.Params.Offset
+	}
+	listed, total, err := server.reservations.List(ctx, reservations.ListOptions{Limit: limit, Offset: offset})
+	if err != nil {
+		problem, status := reservationProblemFor(err)
+		return openapiv1.ListReservationsdefaultApplicationProblemPlusJSONResponse{Body: problem, StatusCode: status}, nil
+	}
+	items := make([]openapiv1.Reservation, 0, len(listed))
+	for _, reservation := range listed {
+		items = append(items, reservationResponse(reservation))
+	}
+	return openapiv1.ListReservations200JSONResponse{Items: items, Total: total, Limit: limit, Offset: offset}, nil
+}
+
+func (server *server) GetReservation(
+	ctx context.Context,
+	request openapiv1.GetReservationRequestObject,
+) (openapiv1.GetReservationResponseObject, error) {
+	id, err := uuid.Parse(request.ReservationId)
+	if err != nil {
+		problem := requestProblem()
+		return openapiv1.GetReservationdefaultApplicationProblemPlusJSONResponse{Body: problem, StatusCode: problem.Status}, nil
+	}
+	reservation, err := server.reservations.Get(ctx, id)
+	if err != nil {
+		problem, status := reservationProblemFor(err)
+		return openapiv1.GetReservationdefaultApplicationProblemPlusJSONResponse{Body: problem, StatusCode: status}, nil
+	}
+	return openapiv1.GetReservation200JSONResponse(reservationResponse(reservation)), nil
+}
+
+func (server *server) CancelReservation(
+	ctx context.Context,
+	request openapiv1.CancelReservationRequestObject,
+) (openapiv1.CancelReservationResponseObject, error) {
+	id, err := uuid.Parse(request.ReservationId)
+	if err != nil {
+		problem := requestProblem()
+		return openapiv1.CancelReservationdefaultApplicationProblemPlusJSONResponse{Body: problem, StatusCode: problem.Status}, nil
+	}
+	reservation, err := server.reservations.Cancel(ctx, id)
+	if err != nil {
+		problem, status := reservationProblemFor(err)
+		return openapiv1.CancelReservationdefaultApplicationProblemPlusJSONResponse{Body: problem, StatusCode: status}, nil
+	}
+	return openapiv1.CancelReservation200JSONResponse(reservationResponse(reservation)), nil
+}
+
 func NewHandler(streamService StreamService, collectionServices ...CollectionService) http.Handler {
 	var collectionService CollectionService
 	if len(collectionServices) > 0 {
 		collectionService = collectionServices[0]
 	}
-	implementation := &server{streams: streamService, collections: collectionService}
+	return newHandler(&server{streams: streamService, collections: collectionService})
+}
+
+func NewHandlerWithReservations(streamService StreamService, collectionService CollectionService, reservationService ReservationService) http.Handler {
+	return newHandler(&server{streams: streamService, collections: collectionService, reservations: reservationService})
+}
+
+func newHandler(implementation *server) http.Handler {
 	strict := openapiv1.NewStrictHandlerWithOptions(
 		implementation,
 		nil,
@@ -339,6 +433,28 @@ func NewHandler(streamService StreamService, collectionServices ...CollectionSer
 		},
 	})
 	return rejectCollectorOptions(handler)
+}
+
+func reservationResponse(reservation reservations.Reservation) openapiv1.Reservation {
+	response := openapiv1.Reservation{
+		Id: reservation.ID, YoutubeVideoId: reservation.YouTubeVideoID, SourceUrl: reservation.SourceURL,
+		State: openapiv1.ReservationState(reservation.State), ScheduledStartAt: reservation.ScheduledStartAt,
+		ActualStartAt: reservation.ActualStartAt, ActualEndAt: reservation.ActualEndAt,
+		NextCheckAt: reservation.NextCheckAt, LastCheckedAt: reservation.LastCheckedAt,
+		MonitorAttempt: reservation.MonitorAttempt, LastErrorCode: reservation.LastErrorCode,
+		LastErrorMessage: reservation.LastErrorMessage, LastErrorRetryable: reservation.LastErrorRetryable,
+		StreamId: reservation.StreamID, CollectionJobId: reservation.CollectionJobID,
+		CanCancel: reservation.CanCancel(), CreatedAt: reservation.CreatedAt, UpdatedAt: reservation.UpdatedAt,
+	}
+	if reservation.CollectionStatus != nil {
+		status := openapiv1.CollectionJobStatus(*reservation.CollectionStatus)
+		response.CollectionStatus = &status
+	}
+	if reservation.CollectionErrorCode != nil {
+		safe := collections.PublicErrorFor(*reservation.CollectionErrorCode)
+		response.CollectionError = &openapiv1.CollectionError{Code: safe.Code, Message: safe.Message, Retryable: safe.Retryable}
+	}
+	return response
 }
 
 func collectionJobResponse(job collections.Job) openapiv1.CollectionJob {
@@ -473,6 +589,22 @@ func collectionProblemFor(err error) (openapiv1.ProblemDetails, int) {
 			Code: "COLLECTION_ALREADY_ACTIVE", Detail: "A collection job is already queued or running.",
 			Status: http.StatusConflict, Title: "Collection already active",
 		}, http.StatusConflict
+	default:
+		problem := internalProblem()
+		return problem, problem.Status
+	}
+}
+
+func reservationProblemFor(err error) (openapiv1.ProblemDetails, int) {
+	switch {
+	case errors.Is(err, reservations.ErrInvalidURL):
+		return openapiv1.ProblemDetails{Code: "INVALID_RESERVATION_URL", Detail: "Provide a supported YouTube video URL.", Status: http.StatusBadRequest, Title: "Invalid reservation URL"}, http.StatusBadRequest
+	case errors.Is(err, reservations.ErrAlreadyActive):
+		return openapiv1.ProblemDetails{Code: "RESERVATION_ALREADY_ACTIVE", Detail: "This YouTube video already has an active reservation.", Status: http.StatusConflict, Title: "Reservation already active"}, http.StatusConflict
+	case errors.Is(err, reservations.ErrNotFound):
+		return openapiv1.ProblemDetails{Code: "RESERVATION_NOT_FOUND", Detail: "The requested reservation does not exist.", Status: http.StatusNotFound, Title: "Reservation not found"}, http.StatusNotFound
+	case errors.Is(err, reservations.ErrNotCancellable):
+		return openapiv1.ProblemDetails{Code: "RESERVATION_NOT_CANCELLABLE", Detail: "This reservation can no longer be canceled.", Status: http.StatusConflict, Title: "Reservation is not cancellable"}, http.StatusConflict
 	default:
 		problem := internalProblem()
 		return problem, problem.Status

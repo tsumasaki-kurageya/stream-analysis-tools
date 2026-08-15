@@ -126,6 +126,47 @@ func TestPostgresReservationSchemaEnforcesLifecycleOwnership(t *testing.T) {
 	}
 }
 
+func TestPostgresReservationRepositoryCreatesListsAndCancels(t *testing.T) {
+	ctx, pool := newReservationTestPool(t)
+	now := time.Date(2026, 8, 15, 12, 0, 0, 0, time.UTC)
+	repository := NewPostgresRepository(pool)
+
+	created, err := repository.Create(ctx, Reservation{
+		YouTubeVideoID: "publicapi01", SourceURL: "https://www.youtube.com/watch?v=publicapi01",
+		State: StateScheduled, NextCheckAt: now,
+	})
+	if err != nil {
+		t.Fatalf("create reservation: %v", err)
+	}
+	if !created.CreatedAt.Equal(now) || !created.CanCancel() {
+		t.Fatalf("unexpected created reservation: %+v", created)
+	}
+	if _, err := repository.Create(ctx, Reservation{
+		YouTubeVideoID: "publicapi01", SourceURL: created.SourceURL,
+		State: StateScheduled, NextCheckAt: now,
+	}); err != ErrAlreadyActive {
+		t.Fatalf("duplicate error = %v, want ErrAlreadyActive", err)
+	}
+
+	items, total, err := repository.List(ctx, ListOptions{Limit: 20, Offset: 0})
+	if err != nil || total != 1 || len(items) != 1 || items[0].ID != created.ID {
+		t.Fatalf("unexpected list: items=%+v total=%d err=%v", items, total, err)
+	}
+	canceled, err := repository.Cancel(ctx, created.ID, now.Add(time.Minute))
+	if err != nil || canceled.State != StateCanceled || canceled.CanCancel() {
+		t.Fatalf("unexpected canceled reservation: %+v err=%v", canceled, err)
+	}
+	if _, err := repository.Cancel(ctx, created.ID, now.Add(2*time.Minute)); err != ErrNotCancellable {
+		t.Fatalf("second cancel error = %v, want ErrNotCancellable", err)
+	}
+	var transitions int
+	if err := pool.QueryRow(ctx, `
+		SELECT count(*) FROM reservation.reservation_transitions WHERE reservation_id = $1
+	`, created.ID).Scan(&transitions); err != nil || transitions != 2 {
+		t.Fatalf("transition count = %d, err=%v", transitions, err)
+	}
+}
+
 func insertScheduledReservation(
 	t *testing.T,
 	ctx context.Context,

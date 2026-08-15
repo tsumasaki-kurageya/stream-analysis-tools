@@ -11,6 +11,8 @@ import (
 var ErrInvalidTransition = errors.New("invalid reservation transition")
 var ErrLeaseLost = errors.New("reservation lease is no longer owned by this worker")
 var ErrNotFound = errors.New("reservation not found")
+var ErrAlreadyActive = errors.New("an active reservation already exists")
+var ErrNotCancellable = errors.New("reservation cannot be canceled in its current state")
 
 type State string
 
@@ -40,21 +42,39 @@ const (
 )
 
 type Reservation struct {
-	ID                 uuid.UUID
-	YouTubeVideoID     string
-	SourceURL          string
-	State              State
-	ScheduledStartAt   *time.Time
-	ActualStartAt      *time.Time
-	ActualEndAt        *time.Time
-	NextCheckAt        time.Time
-	LastCheckedAt      *time.Time
-	MonitorAttempt     int
-	LastErrorCode      *string
-	LastErrorMessage   *string
-	LastErrorRetryable *bool
-	StreamID           *uuid.UUID
-	CollectionJobID    *uuid.UUID
+	ID                  uuid.UUID
+	YouTubeVideoID      string
+	SourceURL           string
+	State               State
+	ScheduledStartAt    *time.Time
+	ActualStartAt       *time.Time
+	ActualEndAt         *time.Time
+	NextCheckAt         time.Time
+	LastCheckedAt       *time.Time
+	MonitorAttempt      int
+	LastErrorCode       *string
+	LastErrorMessage    *string
+	LastErrorRetryable  *bool
+	StreamID            *uuid.UUID
+	CollectionJobID     *uuid.UUID
+	CollectionStatus    *string
+	CollectionErrorCode *string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+}
+
+func (reservation Reservation) CanCancel() bool {
+	switch reservation.State {
+	case StateScheduled, StateMonitoring, StateLive, StateWaitingForArchive:
+		return true
+	default:
+		return false
+	}
+}
+
+type ListOptions struct {
+	Limit  int
+	Offset int
 }
 
 type Lease struct {

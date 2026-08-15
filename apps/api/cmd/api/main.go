@@ -54,8 +54,10 @@ func main() {
 	}
 	streamService := streams.NewService(streams.NewPostgresRepository(pool), metadataClient)
 	collectionService := collections.NewService(collections.NewPostgresRepository(pool))
+	reservationRepository := reservations.NewPostgresRepository(pool)
+	reservationService := reservations.NewService(reservationRepository, time.Now)
 	reservationMonitor := reservations.NewMonitor(
-		reservations.NewPostgresRepository(pool),
+		reservationRepository,
 		metadataClient,
 		reservationMonitorWorkerID(),
 		time.Now,
@@ -67,7 +69,7 @@ func main() {
 	address := ":" + envOrDefault("PORT", "8080")
 	server := &http.Server{
 		Addr:              address,
-		Handler:           httpapi.NewHandler(streamService, collectionService),
+		Handler:           httpapi.NewHandlerWithReservations(streamService, collectionService, reservationService),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

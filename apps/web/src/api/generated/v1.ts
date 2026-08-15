@@ -188,6 +188,70 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/reservations": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List stream reservations
+     * @description Returns reservations in reverse creation order with offset pagination.
+     */
+    get: operations["listReservations"];
+    put?: never;
+    /**
+     * Create a stream reservation
+     * @description Registers a YouTube video for monitoring and automatic collection.
+     */
+    post: operations["createReservation"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/reservations/{reservationId}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get a stream reservation
+     * @description Returns one reservation with safe monitoring and collection status.
+     */
+    get: operations["getReservation"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/reservations/{reservationId}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Cancel a stream reservation
+     * @description Cancels a reservation only while its current state supports cancellation.
+     */
+    post: operations["cancelReservation"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -247,6 +311,55 @@ export interface components {
     /** @enum {string} */
     StreamLifecycleStatus:
       "unknown" | "scheduled" | "live" | "ended" | "unavailable";
+    Reservation: {
+      /** Format: uuid */
+      id: string;
+      youtubeVideoId: string;
+      /** Format: uri */
+      sourceUrl: string;
+      state: components["schemas"]["ReservationState"];
+      /** Format: date-time */
+      scheduledStartAt?: string;
+      /** Format: date-time */
+      actualStartAt?: string;
+      /** Format: date-time */
+      actualEndAt?: string;
+      /** Format: date-time */
+      nextCheckAt: string;
+      /** Format: date-time */
+      lastCheckedAt?: string;
+      monitorAttempt: number;
+      lastErrorCode?: string;
+      lastErrorMessage?: string;
+      lastErrorRetryable?: boolean;
+      /** Format: uuid */
+      streamId?: string;
+      /** Format: uuid */
+      collectionJobId?: string;
+      collectionStatus?: components["schemas"]["CollectionJobStatus"];
+      collectionError?: components["schemas"]["CollectionError"];
+      canCancel: boolean;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+    };
+    /** @enum {string} */
+    ReservationState:
+      | "scheduled"
+      | "monitoring"
+      | "live"
+      | "waiting_for_archive"
+      | "collecting"
+      | "completed"
+      | "failed"
+      | "canceled";
+    ReservationList: {
+      items: components["schemas"]["Reservation"][];
+      total: number;
+      limit: number;
+      offset: number;
+    };
     CollectionJob: {
       id: string;
       streamId: string;
@@ -334,6 +447,8 @@ export interface components {
     StreamId: string;
     /** @description Internal collection job identifier. */
     JobId: string;
+    /** @description Internal reservation identifier. */
+    ReservationId: string;
   };
   requestBodies: never;
   headers: never;
@@ -614,6 +729,111 @@ export interface operations {
       };
       400: components["responses"]["Problem"];
       404: components["responses"]["Problem"];
+      default: components["responses"]["Problem"];
+    };
+  };
+  listReservations: {
+    parameters: {
+      query?: {
+        limit?: number;
+        offset?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description A page of reservations. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReservationList"];
+        };
+      };
+      400: components["responses"]["Problem"];
+      default: components["responses"]["Problem"];
+    };
+  };
+  createReservation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["StreamURLInput"];
+      };
+    };
+    responses: {
+      /** @description The reservation was created. */
+      201: {
+        headers: {
+          /** @description Relative URL of the reservation. */
+          Location?: string;
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Reservation"];
+        };
+      };
+      400: components["responses"]["Problem"];
+      409: components["responses"]["Problem"];
+      default: components["responses"]["Problem"];
+    };
+  };
+  getReservation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Internal reservation identifier. */
+        reservationId: components["parameters"]["ReservationId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The reservation and its safe monitoring and collection status. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Reservation"];
+        };
+      };
+      404: components["responses"]["Problem"];
+      default: components["responses"]["Problem"];
+    };
+  };
+  cancelReservation: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Internal reservation identifier. */
+        reservationId: components["parameters"]["ReservationId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The canceled reservation. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Reservation"];
+        };
+      };
+      404: components["responses"]["Problem"];
+      409: components["responses"]["Problem"];
       default: components["responses"]["Problem"];
     };
   };

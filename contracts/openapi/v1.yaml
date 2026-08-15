@@ -15,6 +15,8 @@ tags:
     description: Background chat-replay collection orchestration and status.
   - name: Chat
     description: Persisted chat messages in stable stream-relative order.
+  - name: Reservations
+    description: Scheduled stream monitoring and automatic collection.
 paths:
   /healthz:
     get:
@@ -318,6 +320,110 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /v1/reservations:
+    post:
+      operationId: createReservation
+      summary: Create a stream reservation
+      description: Registers a YouTube video for monitoring and automatic collection.
+      tags:
+        - Reservations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StreamURLInput"
+      responses:
+        "201":
+          description: The reservation was created.
+          headers:
+            Location:
+              description: Relative URL of the reservation.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    get:
+      operationId: listReservations
+      summary: List stream reservations
+      description: Returns reservations in reverse creation order with offset pagination.
+      tags:
+        - Reservations
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: A page of reservations.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReservationList"
+        "400":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /v1/reservations/{reservationId}:
+    get:
+      operationId: getReservation
+      summary: Get a stream reservation
+      description: Returns one reservation with safe monitoring and collection status.
+      tags:
+        - Reservations
+      parameters:
+        - $ref: "#/components/parameters/ReservationId"
+      responses:
+        "200":
+          description: The reservation and its safe monitoring and collection status.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+  /v1/reservations/{reservationId}/cancel:
+    post:
+      operationId: cancelReservation
+      summary: Cancel a stream reservation
+      description: Cancels a reservation only while its current state supports cancellation.
+      tags:
+        - Reservations
+      parameters:
+        - $ref: "#/components/parameters/ReservationId"
+      responses:
+        "200":
+          description: The canceled reservation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
 components:
   parameters:
     StreamId:
@@ -333,6 +439,14 @@ components:
       in: path
       required: true
       description: Internal collection job identifier.
+      schema:
+        type: string
+        pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+    ReservationId:
+      name: reservationId
+      in: path
+      required: true
+      description: Internal reservation identifier.
       schema:
         type: string
         pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
@@ -470,6 +584,108 @@ components:
         - live
         - ended
         - unavailable
+    Reservation:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - youtubeVideoId
+        - sourceUrl
+        - state
+        - nextCheckAt
+        - monitorAttempt
+        - canCancel
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        youtubeVideoId:
+          type: string
+          minLength: 11
+          maxLength: 11
+        sourceUrl:
+          type: string
+          format: uri
+        state:
+          $ref: "#/components/schemas/ReservationState"
+        scheduledStartAt:
+          type: string
+          format: date-time
+        actualStartAt:
+          type: string
+          format: date-time
+        actualEndAt:
+          type: string
+          format: date-time
+        nextCheckAt:
+          type: string
+          format: date-time
+        lastCheckedAt:
+          type: string
+          format: date-time
+        monitorAttempt:
+          type: integer
+          minimum: 0
+        lastErrorCode:
+          type: string
+        lastErrorMessage:
+          type: string
+        lastErrorRetryable:
+          type: boolean
+        streamId:
+          type: string
+          format: uuid
+        collectionJobId:
+          type: string
+          format: uuid
+        collectionStatus:
+          $ref: "#/components/schemas/CollectionJobStatus"
+        collectionError:
+          $ref: "#/components/schemas/CollectionError"
+        canCancel:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ReservationState:
+      type: string
+      enum:
+        - scheduled
+        - monitoring
+        - live
+        - waiting_for_archive
+        - collecting
+        - completed
+        - failed
+        - canceled
+    ReservationList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - total
+        - limit
+        - offset
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Reservation"
+        total:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        offset:
+          type: integer
+          minimum: 0
     CollectionJob:
       type: object
       additionalProperties: false

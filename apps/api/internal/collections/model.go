@@ -138,3 +138,10 @@ func safeErrorFor(code string) *SafeError {
 		return &SafeError{Code: "COLLECTION_FAILED", Message: "Collection failed."}
 	}
 }
+
+func PublicErrorFor(code string) *SafeError {
+	if code == "" {
+		return nil
+	}
+	return safeErrorFor(code)
+}
