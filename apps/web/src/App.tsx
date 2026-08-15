@@ -3,12 +3,20 @@ import {
   ApiProblem,
   createStream,
   findStreamByYouTubeVideoId,
+  getLatestCollection,
   getStream,
+  listChatMessages,
   listStreams,
   previewStream,
+  retryCollection,
+  startCollection,
+  type ChatMessage,
+  type CollectionJob,
   type Stream,
   type StreamPreview,
 } from "./api/client";
+
+const COLLECTION_POLL_INTERVAL_MS = 2_000;
 
 export function App() {
   const [path, setPath] = useState(window.location.pathname);
@@ -128,7 +136,7 @@ export function App() {
           </span>
           <span>Stream Analysis</span>
         </a>
-        <span className="milestone">M1 · Stream library</span>
+        <span className="milestone">M2 · Chat collection</span>
       </header>
 
       <main>
@@ -319,7 +327,285 @@ function StreamDetail({ stream }: { stream: Stream }) {
           </a>
         </div>
       </div>
+      <CollectionWorkspace streamId={stream.id} />
     </article>
+  );
+}
+
+function CollectionWorkspace({ streamId }: { streamId: string }) {
+  const [collection, setCollection] = useState<CollectionJob | null>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const isActive =
+    collection?.status === "queued" || collection?.status === "running";
+
+  useEffect(() => {
+    let cancelled = false;
+    void getLatestCollection(streamId)
+      .then((job) => {
+        if (!cancelled) setCollection(job);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        if (
+          error instanceof ApiProblem &&
+          error.problem.code === "COLLECTION_JOB_NOT_FOUND"
+        ) {
+          setCollection(null);
+          return;
+        }
+        setRequestError(collectionErrorMessage(error));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [streamId]);
+
+  useEffect(() => {
+    if (!isActive) return;
+    let cancelled = false;
+    let timeout: number;
+
+    function schedulePoll() {
+      timeout = window.setTimeout(() => {
+        void getLatestCollection(streamId)
+          .then((job) => {
+            if (cancelled) return;
+            setCollection(job);
+            setRequestError(null);
+            if (job.status === "queued" || job.status === "running") {
+              schedulePoll();
+            }
+          })
+          .catch((error: unknown) => {
+            if (cancelled) return;
+            setRequestError(collectionErrorMessage(error));
+            schedulePoll();
+          });
+      }, COLLECTION_POLL_INTERVAL_MS);
+    }
+
+    schedulePoll();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [isActive, streamId]);
+
+  async function submit(action: () => Promise<CollectionJob>) {
+    setIsSubmitting(true);
+    setRequestError(null);
+    try {
+      setCollection(await action());
+    } catch (error) {
+      setRequestError(collectionErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <section
+      className="collection-workspace"
+      aria-labelledby="collection-title"
+    >
+      <div className="workspace-heading">
+        <div>
+          <p className="eyebrow">Chat replay</p>
+          <h2 id="collection-title">Collection</h2>
+        </div>
+        {collection ? (
+          <span
+            className={`collection-status collection-status-${collection.status}`}
+          >
+            {collectionStatusLabel(collection.status)}
+          </span>
+        ) : null}
+      </div>
+
+      {requestError ? (
+        <p className="inline-error" role="alert">
+          {requestError}
+        </p>
+      ) : null}
+
+      {collection === undefined ? (
+        <p className="collection-loading" role="status">
+          Loading collection status…
+        </p>
+      ) : collection === null ? (
+        <div className="collection-empty">
+          <div>
+            <h3>Collect this stream’s chat replay</h3>
+            <p>
+              Start a background collection. You can leave this page while the
+              worker processes the archive.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => void submit(() => startCollection(streamId))}
+          >
+            {isSubmitting ? "Starting…" : "Start collection"}
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="collection-summary">
+            <div>
+              <span>Persisted</span>
+              <strong>{collection.processedCount.toLocaleString()}</strong>
+            </div>
+            <div>
+              <span>Skipped</span>
+              <strong>{collection.skippedCount.toLocaleString()}</strong>
+            </div>
+            <div>
+              <span>Attempt</span>
+              <strong>{collection.attempt}</strong>
+            </div>
+          </div>
+
+          {isActive ? (
+            <p className="collection-activity" role="status">
+              <span aria-hidden="true" />
+              {collection.status === "queued"
+                ? "Waiting for an available worker…"
+                : "Collecting and persisting chat messages…"}
+            </p>
+          ) : null}
+
+          {collection.status === "no_data" ? (
+            <p className="collection-notice">
+              Collection finished, but this stream has no available chat replay.
+            </p>
+          ) : null}
+
+          {collection.status === "failed" ? (
+            <div className="collection-failure" role="alert">
+              <div>
+                <strong>
+                  {collection.error?.message ?? "Collection failed."}
+                </strong>
+                <span>
+                  {collection.error?.retryable
+                    ? "The failure is retryable. Starting again creates a new attempt."
+                    : "This failure cannot be retried automatically."}
+                </span>
+              </div>
+              {collection.error?.retryable ? (
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() =>
+                    void submit(() => retryCollection(collection.id))
+                  }
+                >
+                  {isSubmitting ? "Retrying…" : "Retry collection"}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {!isActive ? (
+            <ChatMessageList key={streamId} streamId={streamId} />
+          ) : null}
+        </>
+      )}
+    </section>
+  );
+}
+
+function ChatMessageList({ streamId }: { streamId: string }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [nextCursor, setNextCursor] = useState<string>();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadPage = useCallback(
+    async (cursor?: string) => {
+      try {
+        const page = await listChatMessages(streamId, 50, cursor);
+        setMessages((current) =>
+          cursor ? [...current, ...page.items] : page.items,
+        );
+        setNextCursor(page.nextCursor);
+      } catch (requestError) {
+        setError(collectionErrorMessage(requestError));
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [streamId],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void listChatMessages(streamId, 50)
+      .then((page) => {
+        if (cancelled) return;
+        setMessages(page.items);
+        setNextCursor(page.nextCursor);
+      })
+      .catch((requestError: unknown) => {
+        if (!cancelled) setError(collectionErrorMessage(requestError));
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [streamId]);
+
+  return (
+    <div className="chat-panel" aria-labelledby="chat-title">
+      <div className="chat-heading">
+        <h3 id="chat-title">Collected chat</h3>
+        {messages.length > 0 ? <span>{messages.length} loaded</span> : null}
+      </div>
+      {error ? (
+        <p className="inline-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {messages.length === 0 && isLoading ? (
+        <p className="chat-empty" role="status">
+          Loading chat…
+        </p>
+      ) : messages.length === 0 ? (
+        <p className="chat-empty">No persisted chat messages.</p>
+      ) : (
+        <ol className="chat-list" aria-label="Collected chat">
+          {messages.map((message) => (
+            <li key={message.id}>
+              <time dateTime={message.publishedAt}>
+                {formatOffset(message.offsetMilliseconds)}
+              </time>
+              <div>
+                <strong>{message.authorDisplayName}</strong>
+                <p>{message.messageText}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+      {nextCursor ? (
+        <button
+          className="secondary-button"
+          type="button"
+          disabled={isLoading}
+          onClick={() => {
+            setIsLoading(true);
+            setError(null);
+            void loadPage(nextCursor);
+          }}
+        >
+          {isLoading ? "Loading…" : "Load more chat"}
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -343,6 +629,33 @@ function lifecycleLabel(status: StreamPreview["lifecycleStatus"]) {
     unknown: "Status unknown",
   };
   return labels[status];
+}
+
+function collectionStatusLabel(status: CollectionJob["status"]) {
+  const labels: Record<CollectionJob["status"], string> = {
+    queued: "Queued",
+    running: "Running",
+    succeeded: "Succeeded",
+    no_data: "No data",
+    failed: "Failed",
+  };
+  return labels[status];
+}
+
+function collectionErrorMessage(error: unknown) {
+  return error instanceof ApiProblem
+    ? error.problem.detail
+    : "The collection request could not be completed. Check your connection and try again.";
+}
+
+function formatOffset(offsetMilliseconds: number) {
+  const totalSeconds = Math.max(0, Math.floor(offsetMilliseconds / 1_000));
+  const hours = Math.floor(totalSeconds / 3_600);
+  const minutes = Math.floor((totalSeconds % 3_600) / 60);
+  const seconds = totalSeconds % 60;
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+    : `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function formatDuration(durationMs?: number) {

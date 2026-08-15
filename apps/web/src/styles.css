@@ -505,6 +505,224 @@ button:disabled {
   color: white;
 }
 
+.collection-workspace {
+  margin-top: clamp(3rem, 7vw, 6rem);
+  border-top: 1px solid var(--line);
+  padding-top: clamp(2rem, 5vw, 4rem);
+}
+
+.workspace-heading,
+.chat-heading,
+.collection-empty,
+.collection-failure {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.workspace-heading h2 {
+  margin: 0;
+  color: var(--navy);
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  letter-spacing: -0.045em;
+}
+
+.collection-status {
+  border-radius: 999px;
+  padding: 0.55rem 0.8rem;
+  background: #e6e3dc;
+  color: #4f5b61;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.collection-status-running,
+.collection-status-queued {
+  background: #fff0c2;
+  color: #765910;
+}
+
+.collection-status-succeeded {
+  background: #dff3ec;
+  color: #176058;
+}
+
+.collection-status-no_data {
+  background: #e9edf0;
+  color: #53626b;
+}
+
+.collection-status-failed {
+  background: #ffe2dc;
+  color: #a13622;
+}
+
+.collection-loading,
+.collection-empty,
+.collection-notice,
+.collection-failure,
+.inline-error {
+  margin: 1.5rem 0 0;
+  border-radius: 1rem;
+  padding: 1.25rem;
+}
+
+.collection-loading,
+.collection-empty,
+.collection-notice {
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.collection-loading,
+.collection-empty p,
+.collection-notice,
+.collection-failure span {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.collection-empty h3,
+.collection-failure strong,
+.chat-heading h3 {
+  margin: 0;
+  color: var(--navy);
+}
+
+.collection-empty p {
+  max-width: 38rem;
+  margin: 0.35rem 0 0;
+}
+
+.collection-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 1.5rem;
+}
+
+.collection-summary div {
+  display: grid;
+  gap: 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--paper);
+}
+
+.collection-summary span,
+.chat-heading span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.collection-summary strong {
+  color: var(--navy);
+  font-size: 1.65rem;
+}
+
+.collection-activity {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 1.25rem 0 0;
+  color: var(--teal-dark);
+  font-weight: 700;
+}
+
+.collection-activity > span {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 0 0.35rem rgb(23 107 104 / 13%);
+}
+
+.collection-failure,
+.inline-error {
+  border: 1px solid #d85d46;
+  background: #fff0eb;
+  color: #7c2819;
+}
+
+.collection-failure > div {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.collection-failure strong,
+.collection-failure span {
+  color: inherit;
+}
+
+.chat-panel {
+  margin-top: 2.5rem;
+}
+
+.chat-heading {
+  align-items: baseline;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.8rem;
+}
+
+.chat-heading h3 {
+  font-size: 1.45rem;
+}
+
+.chat-empty {
+  margin: 0;
+  padding: 2.5rem 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+.chat-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-list li {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  padding: 1rem 0;
+}
+
+.chat-list time {
+  color: var(--teal-dark);
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+
+.chat-list strong {
+  color: var(--navy);
+  font-size: 0.86rem;
+}
+
+.chat-list p {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+.secondary-button {
+  margin-top: 1.25rem;
+  border: 1px solid var(--teal);
+  background: transparent;
+  color: var(--teal-dark);
+}
+
 .not-found {
   display: grid;
   min-height: 60vh;
@@ -563,6 +781,26 @@ button:disabled {
 
   .metadata-grid {
     grid-template-columns: 1fr;
+  }
+
+  .collection-empty,
+  .collection-failure {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .collection-empty button,
+  .collection-failure button {
+    width: 100%;
+  }
+
+  .collection-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-list li {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+    gap: 0.65rem;
   }
 }
 
