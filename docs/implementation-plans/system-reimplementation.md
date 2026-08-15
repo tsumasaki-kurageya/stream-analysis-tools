@@ -86,13 +86,13 @@ yt-dlpは独立HTTP Gatewayにせず、Collection Worker container内で固定ve
 
 ### 4.2 責務
 
-| Module | 責務 | 担当しないこと |
-|---|---|---|
-| Web UI | 登録、状態表示、同期閲覧、検索、予約操作 | YouTube取得、ジョブ実行 |
-| Main API | HTTP interface、入力検証、Stream・Reservation・Job管理 | 長時間収集、yt-dlp実行 |
-| Collection Worker | Job claim、lease、heartbeat、収集工程の実行 | UI向けHTTP、独自YouTube pagination |
-| ChatReplayCollector | yt-dlp実行、成果物検証、正規化、バッチ保存 | continuation生成、YouTube再問い合わせ |
-| PostgreSQL | 全永続データとジョブ状態の正本 | 外部データ取得 |
+| Module              | 責務                                                   | 担当しないこと                        |
+| ------------------- | ------------------------------------------------------ | ------------------------------------- |
+| Web UI              | 登録、状態表示、同期閲覧、検索、予約操作               | YouTube取得、ジョブ実行               |
+| Main API            | HTTP interface、入力検証、Stream・Reservation・Job管理 | 長時間収集、yt-dlp実行                |
+| Collection Worker   | Job claim、lease、heartbeat、収集工程の実行            | UI向けHTTP、独自YouTube pagination    |
+| ChatReplayCollector | yt-dlp実行、成果物検証、正規化、バッチ保存             | continuation生成、YouTube再問い合わせ |
+| PostgreSQL          | 全永続データとジョブ状態の正本                         | 外部データ取得                        |
 
 ## 5. 主要処理フロー
 
@@ -274,16 +274,16 @@ result:
 
 代表的なerror分類:
 
-| code | retryable | 意味 |
-|---|---:|---|
-| `CHAT_REPLAY_NOT_AVAILABLE` | false | chatなし、replay無効 |
-| `SOURCE_NOT_READY` | true | archive準備中 |
-| `YOUTUBE_ACCESS_DENIED` | false | 非公開、Cookie不足 |
-| `YOUTUBE_RATE_LIMITED` | true | rate limit |
-| `YTDLP_TIMEOUT` | true | deadline超過 |
-| `YTDLP_PROCESS_FAILED` | 判定による | 非0終了かつ既知分類不能 |
-| `YTDLP_OUTPUT_CHANGED` | false | 成果物schemaの非互換変更 |
-| `CHAT_IMPORT_FAILED` | true | DBまたは一時I/O障害 |
+| code                        |  retryable | 意味                     |
+| --------------------------- | ---------: | ------------------------ |
+| `CHAT_REPLAY_NOT_AVAILABLE` |      false | chatなし、replay無効     |
+| `SOURCE_NOT_READY`          |       true | archive準備中            |
+| `YOUTUBE_ACCESS_DENIED`     |      false | 非公開、Cookie不足       |
+| `YOUTUBE_RATE_LIMITED`      |       true | rate limit               |
+| `YTDLP_TIMEOUT`             |       true | deadline超過             |
+| `YTDLP_PROCESS_FAILED`      | 判定による | 非0終了かつ既知分類不能  |
+| `YTDLP_OUTPUT_CHANGED`      |      false | 成果物schemaの非互換変更 |
+| `CHAT_IMPORT_FAILED`        |       true | DBまたは一時I/O障害      |
 
 独自取得実装へのfallbackは用意しない。障害時は停止するか、characterization済みの直前yt-dlp versionへrollbackする。
 
@@ -448,30 +448,30 @@ active reservationのvideo IDと、Reservation由来CollectionJobを一意にす
 
 各行を独立した小さなcommitまたはPRとする。
 
-| Order | Task | Depends on | Completion evidence |
-|---:|---|---|---|
-| 1 | system architectureとyt-dlp-first取得のADRを追加 | None | Accepted ADR |
-| 2 | monorepo directoryとtoolchainをscaffold | 1 | clean build |
-| 3 | Docker ComposeでPostgreSQLを起動 | 2 | readiness check |
-| 4 | OpenAPI lint/codegenをCIへ追加 | 2 | generated types + CI |
-| 5 | Stream migrationとrepositoryを追加 | 3 | integration test |
-| 6 | metadata preview/register interfaceを追加 | 4, 5 | API test |
-| 7 | M1 UIを追加 | 6 | browser E2E |
-| 8 | CollectionJob/Step migrationとclaim loopを追加 | 3, 5 | multi-worker test |
-| 9 | yt-dlp characterization spikeとversion pinを実施 | 1 | benchmark report |
-| 10 | ChatReplayCollector interface testを追加 | 8, 9 | red test |
-| 11 | yt-dlp adapter、parser、bulk upsertを実装 | 10 | green interface test |
-| 12 | M2 collection/status/chat interfaceを追加 | 8, 11 | API integration test |
-| 13 | M2 UIを追加 | 12 | browser E2E |
-| 14 | direct yt-dlp comparison benchmarkを実施 | 11-13 | performance gate |
-| 15 | Player syncとseekを追加 | 13 | playback E2E |
-| 16 | PostgreSQL chat searchを追加 | 12 | search integration test |
-| 17 | M3 UIを完成 | 15, 16 | M3 completion demo |
-| 18 | Reservation migrationとstate machineを追加 | 8, 17 | state transition test |
-| 19 | Reservation monitorとtransactional Job creationを追加 | 18 | restart/idempotency test |
-| 20 | M4 UIを追加 | 19 | browser E2E |
-| 21 | observability、redaction、cleanupを追加 | 11, 19 | failure-path test |
-| 22 | production canaryとrollback rehearsalを実施 | 20, 21 | completion report |
+| Order | Task                                                  | Depends on | Completion evidence      |
+| ----: | ----------------------------------------------------- | ---------- | ------------------------ |
+|     1 | system architectureとyt-dlp-first取得のADRを追加      | None       | Accepted ADR             |
+|     2 | monorepo directoryとtoolchainをscaffold               | 1          | clean build              |
+|     3 | Docker ComposeでPostgreSQLを起動                      | 2          | readiness check          |
+|     4 | OpenAPI lint/codegenをCIへ追加                        | 2          | generated types + CI     |
+|     5 | Stream migrationとrepositoryを追加                    | 3          | integration test         |
+|     6 | metadata preview/register interfaceを追加             | 4, 5       | API test                 |
+|     7 | M1 UIを追加                                           | 6          | browser E2E              |
+|     8 | CollectionJob/Step migrationとclaim loopを追加        | 3, 5       | multi-worker test        |
+|     9 | yt-dlp characterization spikeとversion pinを実施      | 1          | benchmark report         |
+|    10 | ChatReplayCollector interface testを追加              | 8, 9       | red test                 |
+|    11 | yt-dlp adapter、parser、bulk upsertを実装             | 10         | green interface test     |
+|    12 | M2 collection/status/chat interfaceを追加             | 8, 11      | API integration test     |
+|    13 | M2 UIを追加                                           | 12         | browser E2E              |
+|    14 | direct yt-dlp comparison benchmarkを実施              | 11-13      | performance gate         |
+|    15 | Player syncとseekを追加                               | 13         | playback E2E             |
+|    16 | PostgreSQL chat searchを追加                          | 12         | search integration test  |
+|    17 | M3 UIを完成                                           | 15, 16     | M3 completion demo       |
+|    18 | Reservation migrationとstate machineを追加            | 8, 17      | state transition test    |
+|    19 | Reservation monitorとtransactional Job creationを追加 | 18         | restart/idempotency test |
+|    20 | M4 UIを追加                                           | 19         | browser E2E              |
+|    21 | observability、redaction、cleanupを追加               | 11, 19     | failure-path test        |
+|    22 | production canaryとrollback rehearsalを実施           | 20, 21     | completion report        |
 
 ## 12. Test strategy
 

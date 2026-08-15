@@ -14,23 +14,23 @@
 
 ## 2. 推奨実行順
 
-| Wave | 並行して進めるIssue | 主な担当領域 | 開始条件 | Waveの合流条件 |
-|---:|---|---|---|---|
-| 0 | [#3 ADR](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/3) | Architecture / Docs | なし | yt-dlp-first、PostgreSQL source of truth、対象外機能が合意済み |
-| 1 | [#2 Scaffold](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/2) ・ [#11 yt-dlp characterization](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/11) | Platform ・ Worker research | #3 | toolchainの骨格と、固定するyt-dlp仕様が判明 |
-| 2 | [#4 OpenAPI/codegen](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/4) ・ [#7 PostgreSQL](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/7) | Contract/CI ・ Infrastructure | #2 | 生成コード検査とDB readinessが利用可能 |
-| 3 | [#5 Stream schema/repository](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/5) | Main API / DB | #7 | Stream永続化契約とintegration testが安定 |
-| 4 | [#6 Registration API](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/6) ・ [#8 Job schema/claim loop](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/8) | Main API ・ Worker/DB | #6: #4, #5 / #8: #7, #5 | M1 APIとM2 job基盤を個別に検証済み |
-| 5 | [#9 M1 UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/9) ・ [#10 Collector interface tests](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/10) | Web ・ Worker tests | #9: #6 / #10: #8, #11 | M1 E2E成功、collectorの失敗テストが仕様を固定 |
-| 6 | [#12 yt-dlp adapter/parser/upsert](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/12) | Worker / DB | #10, #11 | interface testがgreen、長時間fixtureがbounded memoryで成功 |
-| 7 | [#13 Collection/chat API](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/13) | Main API / Contract | #8, #12 | idempotent start、status、retry、paginationをintegration test済み |
-| 8 | [#14 M2 UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/14) ・ [#15 Chat search](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/15) | Web ・ Main API/DB | #14: #13 / #15: #13 | 収集閲覧E2Eと検索integration testが成功 |
-| 9 | [#16 Performance benchmark](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/16) ・ [#17 Player sync](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/17) | Verification ・ Web | #16: #12, #13, #14 / #17: #14 | M2性能結果を記録、player/chat同期E2E成功 |
-| 10 | [#18 M3 UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/18) | Web | #17, #15 | 検索→seek→同期再生のM3 demo成功 |
-| 11 | [#19 Reservation model](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/19) | Main API / DB | #8, #18 | state transitionと一意制約を検証済み |
-| 12 | [#20 Reservation monitor](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/20) | Worker / DB | #19 | restart、multi-worker、exactly-once job作成を検証済み |
-| 13 | [#21 Observability/hardening](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/21) ・ [#23 Reservation UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/23) | Platform/Worker ・ Web | #21: #12, #20 / #23: #20 | secret audit成功、予約E2E成功 |
-| 14 | [#22 Canary/rollback](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/22) | Production verification | #21, #23 | canary、restart recovery、rollback rehearsalの報告書が完成 |
+| Wave | 並行して進めるIssue                                                                                                                                                                                 | 主な担当領域                  | 開始条件                      | Waveの合流条件                                                    |
+| ---: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------- | ----------------------------------------------------------------- |
+|    0 | [#3 ADR](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/3)                                                                                                                      | Architecture / Docs           | なし                          | yt-dlp-first、PostgreSQL source of truth、対象外機能が合意済み    |
+|    1 | [#2 Scaffold](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/2) ・ [#11 yt-dlp characterization](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/11)         | Platform ・ Worker research   | #3                            | toolchainの骨格と、固定するyt-dlp仕様が判明                       |
+|    2 | [#4 OpenAPI/codegen](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/4) ・ [#7 PostgreSQL](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/7)                 | Contract/CI ・ Infrastructure | #2                            | 生成コード検査とDB readinessが利用可能                            |
+|    3 | [#5 Stream schema/repository](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/5)                                                                                                 | Main API / DB                 | #7                            | Stream永続化契約とintegration testが安定                          |
+|    4 | [#6 Registration API](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/6) ・ [#8 Job schema/claim loop](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/8)     | Main API ・ Worker/DB         | #6: #4, #5 / #8: #7, #5       | M1 APIとM2 job基盤を個別に検証済み                                |
+|    5 | [#9 M1 UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/9) ・ [#10 Collector interface tests](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/10)          | Web ・ Worker tests           | #9: #6 / #10: #8, #11         | M1 E2E成功、collectorの失敗テストが仕様を固定                     |
+|    6 | [#12 yt-dlp adapter/parser/upsert](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/12)                                                                                           | Worker / DB                   | #10, #11                      | interface testがgreen、長時間fixtureがbounded memoryで成功        |
+|    7 | [#13 Collection/chat API](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/13)                                                                                                    | Main API / Contract           | #8, #12                       | idempotent start、status、retry、paginationをintegration test済み |
+|    8 | [#14 M2 UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/14) ・ [#15 Chat search](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/15)                      | Web ・ Main API/DB            | #14: #13 / #15: #13           | 収集閲覧E2Eと検索integration testが成功                           |
+|    9 | [#16 Performance benchmark](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/16) ・ [#17 Player sync](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/17)      | Verification ・ Web           | #16: #12, #13, #14 / #17: #14 | M2性能結果を記録、player/chat同期E2E成功                          |
+|   10 | [#18 M3 UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/18)                                                                                                                  | Web                           | #17, #15                      | 検索→seek→同期再生のM3 demo成功                                   |
+|   11 | [#19 Reservation model](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/19)                                                                                                      | Main API / DB                 | #8, #18                       | state transitionと一意制約を検証済み                              |
+|   12 | [#20 Reservation monitor](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/20)                                                                                                    | Worker / DB                   | #19                           | restart、multi-worker、exactly-once job作成を検証済み             |
+|   13 | [#21 Observability/hardening](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/21) ・ [#23 Reservation UI](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/23) | Platform/Worker ・ Web        | #21: #12, #20 / #23: #20      | secret audit成功、予約E2E成功                                     |
+|   14 | [#22 Canary/rollback](https://github.com/tsumasaki-kurageya/stream-analysis-tools/issues/22)                                                                                                        | Production verification       | #21, #23                      | canary、restart recovery、rollback rehearsalの報告書が完成        |
 
 ## 3. 依存関係
 
@@ -79,15 +79,15 @@ flowchart LR
 
 ### 安全に並行できる組み合わせ
 
-| 組み合わせ | 並行できる理由 | 先に合わせる契約 |
-|---|---|---|
-| #2 と #11 | repository scaffoldと外部ツール調査で成果物が分離 | #3 ADR |
-| #4 と #7 | OpenAPI/CIとDB runtimeで変更箇所が分離 | #2のdirectory、共通コマンド名 |
-| #6 と #8 | registration APIとjob claimは別module | #5 Stream repository、migration採番 |
-| #9 と #10 | Web UIとWorker interface testsで分離 | #6 API contract、#11 fixture形式 |
-| #14 と #15 | Webの収集閲覧とDB/API検索で分離 | #13 pagination/offset contract |
-| #16 と #17 | benchmark/verificationとplayer UIで分離 | #14の完成状態、同じ実データfixture |
-| #21 と #23 | observability/cleanupとreservation UIで概ね分離 | #20 state/error contract |
+| 組み合わせ | 並行できる理由                                    | 先に合わせる契約                    |
+| ---------- | ------------------------------------------------- | ----------------------------------- |
+| #2 と #11  | repository scaffoldと外部ツール調査で成果物が分離 | #3 ADR                              |
+| #4 と #7   | OpenAPI/CIとDB runtimeで変更箇所が分離            | #2のdirectory、共通コマンド名       |
+| #6 と #8   | registration APIとjob claimは別module             | #5 Stream repository、migration採番 |
+| #9 と #10  | Web UIとWorker interface testsで分離              | #6 API contract、#11 fixture形式    |
+| #14 と #15 | Webの収集閲覧とDB/API検索で分離                   | #13 pagination/offset contract      |
+| #16 と #17 | benchmark/verificationとplayer UIで分離           | #14の完成状態、同じ実データfixture  |
+| #21 と #23 | observability/cleanupとreservation UIで概ね分離   | #20 state/error contract            |
 
 ### 直列にする箇所
 
@@ -104,14 +104,14 @@ flowchart LR
 
 Issueの着手は前倒しできるが、次の条件を満たすまでマイルストーンを完了扱いにしない。
 
-| Gate | 必須Issue | 判定 |
-|---|---|---|
-| M0 | #3, #2, #7, #4 | clean checkoutから全unitをformat、lint、type-check、buildでき、PostgreSQLがreadyになる |
-| M1 | #5, #6, #9 | 実在する終了済み配信を登録し、再起動後に一覧・詳細を開ける |
-| M2 | #8, #11, #10, #12, #13, #14, #16 | 長時間chatを冪等収集でき、UIで状態を確認でき、直接yt-dlp比較の性能gateを通過する |
-| M3 | #17, #15, #18 | 検索結果からseekし、再生中のchat同期を維持できる |
-| M4 | #19, #20, #23 | 予約からarchive-ready後の自動収集を一度だけ起動し、再起動から回復できる |
-| M4.1 | #21, #22 | secret漏えいなし、temp cleanup、canary、rollback rehearsalを証跡付きで完了する |
+| Gate | 必須Issue                        | 判定                                                                                   |
+| ---- | -------------------------------- | -------------------------------------------------------------------------------------- |
+| M0   | #3, #2, #7, #4                   | clean checkoutから全unitをformat、lint、type-check、buildでき、PostgreSQLがreadyになる |
+| M1   | #5, #6, #9                       | 実在する終了済み配信を登録し、再起動後に一覧・詳細を開ける                             |
+| M2   | #8, #11, #10, #12, #13, #14, #16 | 長時間chatを冪等収集でき、UIで状態を確認でき、直接yt-dlp比較の性能gateを通過する       |
+| M3   | #17, #15, #18                    | 検索結果からseekし、再生中のchat同期を維持できる                                       |
+| M4   | #19, #20, #23                    | 予約からarchive-ready後の自動収集を一度だけ起動し、再起動から回復できる                |
+| M4.1 | #21, #22                         | secret漏えいなし、temp cleanup、canary、rollback rehearsalを証跡付きで完了する         |
 
 ## 6. PRとmerge運用
 

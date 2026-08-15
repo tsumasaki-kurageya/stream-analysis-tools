@@ -15,16 +15,16 @@ The discarded implementation coupled product behavior to YouTube page and Innert
 
 The initial system consists of four deployment units:
 
-| Unit | Owns | Must not own |
-| --- | --- | --- |
-| Web UI (React, TypeScript, Vite) | Stream registration and browsing screens, job and reservation status, chat exploration, YouTube IFrame Player integration | Direct chat-replay acquisition, yt-dlp process execution, persistence |
-| Main API (Go) | Versioned HTTPS/JSON interface, input validation, stream/job/reservation orchestration, database transactions and reads | YouTube chat pagination, continuation tokens, artifact parsing, long-running collection |
-| Collection Worker (Python) | Job claim/lease/heartbeat, one yt-dlp subprocess per attempt, artifact normalization, batched persistence, cancellation and cleanup | Custom Innertube or page-level HTTP client, public HTTP API, durable state outside PostgreSQL |
-| PostgreSQL | Durable source of truth for streams, collection jobs and steps, chat messages, reservations and transitions | Raw temporary artifacts and process-local execution state |
+| Unit                             | Owns                                                                                                                                | Must not own                                                                                  |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Web UI (React, TypeScript, Vite) | Stream registration and browsing screens, job and reservation status, chat exploration, YouTube IFrame Player integration           | Direct chat-replay acquisition, yt-dlp process execution, persistence                         |
+| Main API (Go)                    | Versioned HTTPS/JSON interface, input validation, stream/job/reservation orchestration, database transactions and reads             | YouTube chat pagination, continuation tokens, artifact parsing, long-running collection       |
+| Collection Worker (Python)       | Job claim/lease/heartbeat, one yt-dlp subprocess per attempt, artifact normalization, batched persistence, cancellation and cleanup | Custom Innertube or page-level HTTP client, public HTTP API, durable state outside PostgreSQL |
+| PostgreSQL                       | Durable source of truth for streams, collection jobs and steps, chat messages, reservations and transitions                         | Raw temporary artifacts and process-local execution state                                     |
 
 The Web UI communicates with the Main API over HTTPS/JSON. The Main API and Collection Worker coordinate through PostgreSQL. The worker does not require a private API call back into the Main API.
 
-~~~mermaid
+```mermaid
 flowchart LR
     User[User] --> Web[Web UI]
     Web -->|HTTPS / JSON| API[Go Main API]
@@ -35,7 +35,7 @@ flowchart LR
     YtDlp --> YouTube[YouTube]
     Collector -->|batch upsert| DB
     Web -.->|IFrame Player API| YouTube
-~~~
+```
 
 ### Durable state and artifacts
 
