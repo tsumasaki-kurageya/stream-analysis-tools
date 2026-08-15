@@ -86,6 +86,53 @@ test("starts, restores, retries, and browses a chat collection", async ({
   );
 });
 
+test("keeps chat synchronized with playback and seeks from a message", async ({
+  page,
+}) => {
+  await installSynchronizedPlaybackApi(page);
+  await installFakeYouTubePlayer(page);
+  await page.goto(`/streams/${streamId}`);
+
+  await expect(page.getByText("Player ready")).toBeVisible();
+  await page.getByRole("button", { name: "Play at 1:05" }).click();
+
+  const chat = page.getByRole("list", { name: "Collected chat" });
+  await expect(chat.getByRole("listitem").nth(1)).toHaveAttribute(
+    "aria-current",
+    "time",
+  );
+  await expect(page.getByText("Playback 1:05")).toBeVisible();
+
+  await chat
+    .getByRole("button", { name: "Seek to 0:05: Opening message" })
+    .click();
+  await expect(chat.getByRole("listitem").nth(0)).toHaveAttribute(
+    "aria-current",
+    "time",
+  );
+  await expect(page.getByText("Playback 0:05")).toBeVisible();
+  await expect(page.getByText("Fake player at 5 seconds")).toBeVisible();
+});
+
+test("keeps collected chat available when YouTube embedding fails", async ({
+  page,
+}) => {
+  await installSynchronizedPlaybackApi(page);
+  await installUnavailableYouTubePlayer(page);
+  await page.goto(`/streams/${streamId}`);
+
+  await expect(
+    page.getByText("This video cannot be played in the embedded player."),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Open this video on YouTube" }),
+  ).toHaveAttribute("href", preview.canonicalUrl);
+
+  const chat = page.getByRole("list", { name: "Collected chat" });
+  await expect(chat.getByRole("listitem")).toHaveCount(2);
+  await expect(chat).toContainText("Opening message");
+});
+
 async function installStreamApi(page: Page) {
   let savedStream:
     | (typeof preview & {
@@ -313,5 +360,123 @@ async function installCollectionApi(page: Page) {
     }
 
     await route.abort("failed");
+  });
+}
+
+async function installSynchronizedPlaybackApi(page: Page) {
+  const savedStream = {
+    ...preview,
+    id: streamId,
+    createdAt: "2026-08-14T00:01:00Z",
+    updatedAt: "2026-08-14T00:01:00Z",
+  };
+
+  await page.route("**/v1/**", async (route) => {
+    const request = route.request();
+    const { pathname } = new URL(request.url());
+    if (pathname === `/v1/streams/${streamId}`) {
+      await route.fulfill({ json: savedStream });
+      return;
+    }
+    if (pathname === `/v1/streams/${streamId}/collections/latest`) {
+      await route.fulfill({
+        json: {
+          id: "787f789a-c336-4db7-94aa-739730a2f0b8",
+          streamId,
+          kind: "chat_replay",
+          status: "succeeded",
+          attempt: 1,
+          processedCount: 2,
+          skippedCount: 0,
+          requestedAt: "2026-08-14T00:02:00Z",
+          updatedAt: "2026-08-14T00:03:00Z",
+          finishedAt: "2026-08-14T00:03:00Z",
+        },
+      });
+      return;
+    }
+    if (pathname === `/v1/streams/${streamId}/chat-messages`) {
+      await route.fulfill({
+        json: {
+          items: [
+            {
+              id: "87c92d04-2d92-4c9b-9ea1-962984c2f901",
+              authorDisplayName: "First viewer",
+              messageText: "Opening message",
+              publishedAt: "2026-08-10T10:00:05Z",
+              offsetMilliseconds: 5_000,
+              messageType: "text",
+            },
+            {
+              id: "547ec39e-d9e7-497a-86f1-6d154ff08b78",
+              authorDisplayName: "Second viewer",
+              messageText: "Later message",
+              publishedAt: "2026-08-10T10:01:05Z",
+              offsetMilliseconds: 65_000,
+              messageType: "text",
+            },
+          ],
+        },
+      });
+      return;
+    }
+    await route.abort("failed");
+  });
+}
+
+async function installFakeYouTubePlayer(page: Page) {
+  await page.route("https://www.youtube.com/iframe_api", async (route) => {
+    await route.fulfill({
+      contentType: "application/javascript",
+      body: `
+window.YT = {
+  PlayerState: { PLAYING: 1 },
+  Player: function (element, options) {
+    let currentTime = 0;
+    const control = document.createElement("button");
+    const updateControl = () => {
+      control.textContent = "Fake player at " + currentTime + " seconds";
+      control.setAttribute("aria-label", currentTime === 0 ? "Play at 1:05" : control.textContent);
+    };
+    control.addEventListener("click", () => {
+      currentTime = 65;
+      updateControl();
+      options.events.onStateChange({ data: window.YT.PlayerState.PLAYING });
+    });
+    updateControl();
+    element.replaceChildren(control);
+    this.getCurrentTime = () => currentTime;
+    this.seekTo = (seconds) => {
+      currentTime = seconds;
+      updateControl();
+      options.events.onStateChange({ data: window.YT.PlayerState.PLAYING });
+    };
+    this.destroy = () => {};
+    queueMicrotask(() => options.events.onReady());
+  }
+};
+window.onYouTubeIframeAPIReady();
+`,
+    });
+  });
+}
+
+async function installUnavailableYouTubePlayer(page: Page) {
+  await page.route("https://www.youtube.com/iframe_api", async (route) => {
+    await route.fulfill({
+      contentType: "application/javascript",
+      body: `
+window.YT = {
+  PlayerState: { PLAYING: 1 },
+  Player: function (_element, options) {
+    this.getCurrentTime = () => 0;
+    this.seekTo = () => {};
+    this.destroy = () => {};
+    queueMicrotask(() => options.events.onError({ data: 101 }));
+  }
+};
+window.onYouTubeIframeAPIReady();
+`,
+    });
   });
 }

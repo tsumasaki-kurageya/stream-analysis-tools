@@ -15,6 +15,7 @@ import {
   type Stream,
   type StreamPreview,
 } from "./api/client";
+import { YouTubePlayer, type PlayerSeekRequest } from "./YouTubePlayer";
 
 const COLLECTION_POLL_INTERVAL_MS = 2_000;
 
@@ -136,7 +137,7 @@ export function App() {
           </span>
           <span>Stream Analysis</span>
         </a>
-        <span className="milestone">M2 · Chat collection</span>
+        <span className="milestone">M3 · Synchronized playback</span>
       </header>
 
       <main>
@@ -283,6 +284,17 @@ function PreviewCard({
 }
 
 function StreamDetail({ stream }: { stream: Stream }) {
+  const [playbackOffsetMilliseconds, setPlaybackOffsetMilliseconds] =
+    useState(0);
+  const [seekRequest, setSeekRequest] = useState<PlayerSeekRequest>();
+
+  function seekTo(offsetMilliseconds: number) {
+    setSeekRequest((current) => ({
+      offsetMilliseconds,
+      sequence: (current?.sequence ?? 0) + 1,
+    }));
+  }
+
   return (
     <article className="stream-detail">
       <a className="back-link" href="/streams" aria-label="Back to library">
@@ -327,12 +339,30 @@ function StreamDetail({ stream }: { stream: Stream }) {
           </a>
         </div>
       </div>
-      <CollectionWorkspace streamId={stream.id} />
+      <YouTubePlayer
+        videoId={stream.youtubeVideoId}
+        canonicalUrl={stream.canonicalUrl}
+        seekRequest={seekRequest}
+        onTimeChange={setPlaybackOffsetMilliseconds}
+      />
+      <CollectionWorkspace
+        streamId={stream.id}
+        playbackOffsetMilliseconds={playbackOffsetMilliseconds}
+        onSeek={seekTo}
+      />
     </article>
   );
 }
 
-function CollectionWorkspace({ streamId }: { streamId: string }) {
+function CollectionWorkspace({
+  streamId,
+  playbackOffsetMilliseconds,
+  onSeek,
+}: {
+  streamId: string;
+  playbackOffsetMilliseconds: number;
+  onSeek: (offsetMilliseconds: number) => void;
+}) {
   const [collection, setCollection] = useState<CollectionJob | null>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -509,7 +539,12 @@ function CollectionWorkspace({ streamId }: { streamId: string }) {
           ) : null}
 
           {!isActive ? (
-            <ChatMessageList key={streamId} streamId={streamId} />
+            <ChatMessageList
+              key={streamId}
+              streamId={streamId}
+              playbackOffsetMilliseconds={playbackOffsetMilliseconds}
+              onSeek={onSeek}
+            />
           ) : null}
         </>
       )}
@@ -517,7 +552,15 @@ function CollectionWorkspace({ streamId }: { streamId: string }) {
   );
 }
 
-function ChatMessageList({ streamId }: { streamId: string }) {
+function ChatMessageList({
+  streamId,
+  playbackOffsetMilliseconds,
+  onSeek,
+}: {
+  streamId: string;
+  playbackOffsetMilliseconds: number;
+  onSeek: (offsetMilliseconds: number) => void;
+}) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [nextCursor, setNextCursor] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
@@ -559,6 +602,17 @@ function ChatMessageList({ streamId }: { streamId: string }) {
     };
   }, [streamId]);
 
+  const currentMessageId = messages.reduce<ChatMessage | undefined>(
+    (closest, message) => {
+      if (!closest) return message;
+      return Math.abs(message.offsetMilliseconds - playbackOffsetMilliseconds) <
+        Math.abs(closest.offsetMilliseconds - playbackOffsetMilliseconds)
+        ? message
+        : closest;
+    },
+    undefined,
+  )?.id;
+
   return (
     <div className="chat-panel" aria-labelledby="chat-title">
       <div className="chat-heading">
@@ -579,10 +633,22 @@ function ChatMessageList({ streamId }: { streamId: string }) {
       ) : (
         <ol className="chat-list" aria-label="Collected chat">
           {messages.map((message) => (
-            <li key={message.id}>
-              <time dateTime={message.publishedAt}>
-                {formatOffset(message.offsetMilliseconds)}
-              </time>
+            <li
+              key={message.id}
+              aria-current={
+                message.id === currentMessageId ? "time" : undefined
+              }
+            >
+              <button
+                className="chat-seek"
+                type="button"
+                aria-label={`Seek to ${formatOffset(message.offsetMilliseconds)}: ${message.messageText}`}
+                onClick={() => onSeek(message.offsetMilliseconds)}
+              >
+                <time dateTime={message.publishedAt}>
+                  {formatOffset(message.offsetMilliseconds)}
+                </time>
+              </button>
               <div>
                 <strong>{message.authorDisplayName}</strong>
                 <p>{message.messageText}</p>
