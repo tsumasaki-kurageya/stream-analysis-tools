@@ -1,7 +1,7 @@
 # Contracts
 
-`openapi/v1.yaml` is the source of truth for the main API. It defines the operational health endpoint,
-the initial reusable schemas, and the RFC 9457 Problem Details error shape.
+`openapi/v1.yaml` is the source of truth for the main API. It defines health, stream registration,
+collection orchestration, stable chat pagination, and the RFC 9457 Problem Details error shape.
 
 Install the pinned contract tooling and validate the document:
 

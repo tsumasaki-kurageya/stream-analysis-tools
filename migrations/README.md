@@ -30,3 +30,6 @@ stale workers cannot heartbeat, report progress, or finish after another worker 
 `000003_create_chat_messages` creates the normalized `chat.chat_messages` source of truth. Messages
 are unique by stream, source, and external message ID; timeline and collection-job indexes support
 stable browsing and provenance queries. The Worker imports this table in bounded idempotent batches.
+
+`000004_add_chat_cursor_index` adds the `(stream_id, offset_milliseconds, id)` index used by the Main
+API's opaque cursor. This keeps pagination stable when multiple messages share an offset.

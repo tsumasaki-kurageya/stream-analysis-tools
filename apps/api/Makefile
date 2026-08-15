@@ -19,7 +19,7 @@ test:
 	go test ./...
 
 integration-test:
-	go test -tags=integration -count=1 -timeout=5m ./internal/streams
+	go test -tags=integration -count=1 -timeout=5m ./internal/...
 
 build:
 	mkdir -p bin

@@ -17,6 +17,78 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for ChatMessageMessageType.
+const (
+	Text ChatMessageMessageType = "text"
+)
+
+// Valid indicates whether the value is a known member of the ChatMessageMessageType enum.
+func (e ChatMessageMessageType) Valid() bool {
+	switch e {
+	case Text:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CollectionJobCurrentStep.
+const (
+	CollectionJobCurrentStepChatReplay CollectionJobCurrentStep = "chat_replay"
+)
+
+// Valid indicates whether the value is a known member of the CollectionJobCurrentStep enum.
+func (e CollectionJobCurrentStep) Valid() bool {
+	switch e {
+	case CollectionJobCurrentStepChatReplay:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CollectionJobKind.
+const (
+	CollectionJobKindChatReplay CollectionJobKind = "chat_replay"
+)
+
+// Valid indicates whether the value is a known member of the CollectionJobKind enum.
+func (e CollectionJobKind) Valid() bool {
+	switch e {
+	case CollectionJobKindChatReplay:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CollectionJobStatus.
+const (
+	Failed    CollectionJobStatus = "failed"
+	NoData    CollectionJobStatus = "no_data"
+	Queued    CollectionJobStatus = "queued"
+	Running   CollectionJobStatus = "running"
+	Succeeded CollectionJobStatus = "succeeded"
+)
+
+// Valid indicates whether the value is a known member of the CollectionJobStatus enum.
+func (e CollectionJobStatus) Valid() bool {
+	switch e {
+	case Failed:
+		return true
+	case NoData:
+		return true
+	case Queued:
+		return true
+	case Running:
+		return true
+	case Succeeded:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for HealthResponseStatus.
 const (
 	Ok HealthResponseStatus = "ok"
@@ -58,6 +130,59 @@ func (e StreamLifecycleStatus) Valid() bool {
 		return false
 	}
 }
+
+// ChatMessage defines model for ChatMessage.
+type ChatMessage struct {
+	AuthorChannelId    *string                `json:"authorChannelId,omitempty"`
+	AuthorDisplayName  string                 `json:"authorDisplayName"`
+	Id                 string                 `json:"id"`
+	MessageText        string                 `json:"messageText"`
+	MessageType        ChatMessageMessageType `json:"messageType"`
+	OffsetMilliseconds int64                  `json:"offsetMilliseconds"`
+	PublishedAt        time.Time              `json:"publishedAt"`
+}
+
+// ChatMessageMessageType defines model for ChatMessage.MessageType.
+type ChatMessageMessageType string
+
+// ChatMessagePage defines model for ChatMessagePage.
+type ChatMessagePage struct {
+	Items      []ChatMessage `json:"items"`
+	NextCursor *string       `json:"nextCursor,omitempty"`
+}
+
+// CollectionError defines model for CollectionError.
+type CollectionError struct {
+	Code      string `json:"code"`
+	Message   string `json:"message"`
+	Retryable bool   `json:"retryable"`
+}
+
+// CollectionJob defines model for CollectionJob.
+type CollectionJob struct {
+	Attempt        int                       `json:"attempt"`
+	CurrentStep    *CollectionJobCurrentStep `json:"currentStep,omitempty"`
+	Error          *CollectionError          `json:"error,omitempty"`
+	FinishedAt     *time.Time                `json:"finishedAt,omitempty"`
+	Id             string                    `json:"id"`
+	Kind           CollectionJobKind         `json:"kind"`
+	ProcessedCount int64                     `json:"processedCount"`
+	RequestedAt    time.Time                 `json:"requestedAt"`
+	SkippedCount   int64                     `json:"skippedCount"`
+	StartedAt      *time.Time                `json:"startedAt,omitempty"`
+	Status         CollectionJobStatus       `json:"status"`
+	StreamId       string                    `json:"streamId"`
+	UpdatedAt      time.Time                 `json:"updatedAt"`
+}
+
+// CollectionJobCurrentStep defines model for CollectionJob.CurrentStep.
+type CollectionJobCurrentStep string
+
+// CollectionJobKind defines model for CollectionJob.Kind.
+type CollectionJobKind string
+
+// CollectionJobStatus defines model for CollectionJobStatus.
+type CollectionJobStatus string
 
 // HealthResponse defines model for HealthResponse.
 type HealthResponse struct {
@@ -148,6 +273,12 @@ type StreamURLInput struct {
 	Url string `json:"url"`
 }
 
+// JobId defines model for JobId.
+type JobId = string
+
+// StreamId defines model for StreamId.
+type StreamId = string
+
 // Problem RFC 9457 Problem Details object with a stable product-level code.
 type Problem = ProblemDetails
 
@@ -158,6 +289,15 @@ type ListStreamsParams struct {
 
 	// Offset Number of streams to skip.
 	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
+}
+
+// ListChatMessagesParams defines parameters for ListChatMessages.
+type ListChatMessagesParams struct {
+	// Limit Maximum number of messages to return.
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Cursor Opaque cursor returned by the previous page.
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
 }
 
 // CreateStreamJSONRequestBody defines body for CreateStream for application/json ContentType.
@@ -306,6 +446,9 @@ type ServerInterface interface {
 	// GetHealth Check API health
 	// (GET /healthz)
 	GetHealth(w http.ResponseWriter, r *http.Request)
+	// RetryCollection Retry a failed collection
+	// (POST /v1/collection-jobs/{jobId}/retry)
+	RetryCollection(w http.ResponseWriter, r *http.Request, jobId JobId)
 	// ListStreams List registered streams
 	// (GET /v1/streams)
 	ListStreams(w http.ResponseWriter, r *http.Request, params ListStreamsParams)
@@ -318,6 +461,15 @@ type ServerInterface interface {
 	// GetStream Get a registered stream
 	// (GET /v1/streams/{streamId})
 	GetStream(w http.ResponseWriter, r *http.Request, streamId string)
+	// ListChatMessages List persisted chat messages
+	// (GET /v1/streams/{streamId}/chat-messages)
+	ListChatMessages(w http.ResponseWriter, r *http.Request, streamId StreamId, params ListChatMessagesParams)
+	// StartCollection Start chat-replay collection
+	// (POST /v1/streams/{streamId}/collections)
+	StartCollection(w http.ResponseWriter, r *http.Request, streamId StreamId)
+	// GetLatestCollection Get latest collection status
+	// (GET /v1/streams/{streamId}/collections/latest)
+	GetLatestCollection(w http.ResponseWriter, r *http.Request, streamId StreamId)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -334,6 +486,32 @@ func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// RetryCollection operation middleware
+func (siw *ServerInterfaceWrapper) RetryCollection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "jobId" -------------
+	var jobId JobId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "jobId", r.PathValue("jobId"), &jobId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "jobId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.RetryCollection(w, r, jobId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -434,6 +612,113 @@ func (siw *ServerInterfaceWrapper) GetStream(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetStream(w, r, streamId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListChatMessages operation middleware
+func (siw *ServerInterfaceWrapper) ListChatMessages(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "streamId" -------------
+	var streamId StreamId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "streamId", r.PathValue("streamId"), &streamId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "streamId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListChatMessagesParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListChatMessages(w, r, streamId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// StartCollection operation middleware
+func (siw *ServerInterfaceWrapper) StartCollection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "streamId" -------------
+	var streamId StreamId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "streamId", r.PathValue("streamId"), &streamId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "streamId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.StartCollection(w, r, streamId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetLatestCollection operation middleware
+func (siw *ServerInterfaceWrapper) GetLatestCollection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "streamId" -------------
+	var streamId StreamId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "streamId", r.PathValue("streamId"), &streamId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "streamId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetLatestCollection(w, r, streamId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -568,6 +853,10 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/streams", wrapper.ListStreams)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/streams", wrapper.CreateStream)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/streams/{streamId}", wrapper.GetStream)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/streams/{streamId}/collections", wrapper.StartCollection)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/streams/{streamId}/collections/latest", wrapper.GetLatestCollection)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/collection-jobs/{jobId}/retry", wrapper.RetryCollection)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/streams/{streamId}/chat-messages", wrapper.ListChatMessages)
 
 	return m
 }
@@ -601,6 +890,85 @@ type GetHealthdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response GetHealthdefaultApplicationProblemPlusJSONResponse) VisitGetHealthResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RetryCollectionRequestObject struct {
+	JobId JobId `json:"jobId"`
+}
+
+type RetryCollectionResponseObject interface {
+	VisitRetryCollectionResponse(w http.ResponseWriter) error
+}
+
+type RetryCollection202ResponseHeaders struct {
+	Location *string
+}
+
+type RetryCollection202JSONResponse struct {
+	Body    CollectionJob
+	Headers RetryCollection202ResponseHeaders
+}
+
+func (response RetryCollection202JSONResponse) VisitRetryCollectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.Location != nil {
+		w.Header().Set("Location", fmt.Sprint(*response.Headers.Location))
+	}
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RetryCollection404ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response RetryCollection404ApplicationProblemPlusJSONResponse) VisitRetryCollectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RetryCollection409ApplicationProblemPlusJSONResponse ProblemDetails
+
+func (response RetryCollection409ApplicationProblemPlusJSONResponse) VisitRetryCollectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type RetryCollectiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       ProblemDetails
+	StatusCode int
+}
+
+func (response RetryCollectiondefaultApplicationProblemPlusJSONResponse) VisitRetryCollectionResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -912,11 +1280,204 @@ func (response GetStreamdefaultApplicationProblemPlusJSONResponse) VisitGetStrea
 	return err
 }
 
+type ListChatMessagesRequestObject struct {
+	StreamId StreamId `json:"streamId"`
+	Params   ListChatMessagesParams
+}
+
+type ListChatMessagesResponseObject interface {
+	VisitListChatMessagesResponse(w http.ResponseWriter) error
+}
+
+type ListChatMessages200JSONResponse ChatMessagePage
+
+func (response ListChatMessages200JSONResponse) VisitListChatMessagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChatMessages400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListChatMessages400ApplicationProblemPlusJSONResponse) VisitListChatMessagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChatMessages404ApplicationProblemPlusJSONResponse ProblemDetails
+
+func (response ListChatMessages404ApplicationProblemPlusJSONResponse) VisitListChatMessagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListChatMessagesdefaultApplicationProblemPlusJSONResponse struct {
+	Body       ProblemDetails
+	StatusCode int
+}
+
+func (response ListChatMessagesdefaultApplicationProblemPlusJSONResponse) VisitListChatMessagesResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartCollectionRequestObject struct {
+	StreamId StreamId `json:"streamId"`
+}
+
+type StartCollectionResponseObject interface {
+	VisitStartCollectionResponse(w http.ResponseWriter) error
+}
+
+type StartCollection202ResponseHeaders struct {
+	Location *string
+}
+
+type StartCollection202JSONResponse struct {
+	Body    CollectionJob
+	Headers StartCollection202ResponseHeaders
+}
+
+func (response StartCollection202JSONResponse) VisitStartCollectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if response.Headers.Location != nil {
+		w.Header().Set("Location", fmt.Sprint(*response.Headers.Location))
+	}
+	w.WriteHeader(202)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartCollection404ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response StartCollection404ApplicationProblemPlusJSONResponse) VisitStartCollectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type StartCollectiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       ProblemDetails
+	StatusCode int
+}
+
+func (response StartCollectiondefaultApplicationProblemPlusJSONResponse) VisitStartCollectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLatestCollectionRequestObject struct {
+	StreamId StreamId `json:"streamId"`
+}
+
+type GetLatestCollectionResponseObject interface {
+	VisitGetLatestCollectionResponse(w http.ResponseWriter) error
+}
+
+type GetLatestCollection200JSONResponse CollectionJob
+
+func (response GetLatestCollection200JSONResponse) VisitGetLatestCollectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLatestCollection404ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetLatestCollection404ApplicationProblemPlusJSONResponse) VisitGetLatestCollectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetLatestCollectiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       ProblemDetails
+	StatusCode int
+}
+
+func (response GetLatestCollectiondefaultApplicationProblemPlusJSONResponse) VisitGetLatestCollectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// GetHealth Check API health
 	// (GET /healthz)
 	GetHealth(ctx context.Context, request GetHealthRequestObject) (GetHealthResponseObject, error)
+	// RetryCollection Retry a failed collection
+	// (POST /v1/collection-jobs/{jobId}/retry)
+	RetryCollection(ctx context.Context, request RetryCollectionRequestObject) (RetryCollectionResponseObject, error)
 	// ListStreams List registered streams
 	// (GET /v1/streams)
 	ListStreams(ctx context.Context, request ListStreamsRequestObject) (ListStreamsResponseObject, error)
@@ -929,6 +1490,15 @@ type StrictServerInterface interface {
 	// GetStream Get a registered stream
 	// (GET /v1/streams/{streamId})
 	GetStream(ctx context.Context, request GetStreamRequestObject) (GetStreamResponseObject, error)
+	// ListChatMessages List persisted chat messages
+	// (GET /v1/streams/{streamId}/chat-messages)
+	ListChatMessages(ctx context.Context, request ListChatMessagesRequestObject) (ListChatMessagesResponseObject, error)
+	// StartCollection Start chat-replay collection
+	// (POST /v1/streams/{streamId}/collections)
+	StartCollection(ctx context.Context, request StartCollectionRequestObject) (StartCollectionResponseObject, error)
+	// GetLatestCollection Get latest collection status
+	// (GET /v1/streams/{streamId}/collections/latest)
+	GetLatestCollection(ctx context.Context, request GetLatestCollectionRequestObject) (GetLatestCollectionResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, request any) (any, error)
@@ -987,6 +1557,32 @@ func (sh *strictHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetHealthResponseObject); ok {
 		if err := validResponse.VisitGetHealthResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// RetryCollection operation middleware
+func (sh *strictHandler) RetryCollection(w http.ResponseWriter, r *http.Request, jobId JobId) {
+	var request RetryCollectionRequestObject
+
+	request.JobId = jobId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.RetryCollection(ctx, request.(RetryCollectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "RetryCollection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(RetryCollectionResponseObject); ok {
+		if err := validResponse.VisitRetryCollectionResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
@@ -1101,6 +1697,85 @@ func (sh *strictHandler) GetStream(w http.ResponseWriter, r *http.Request, strea
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetStreamResponseObject); ok {
 		if err := validResponse.VisitGetStreamResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListChatMessages operation middleware
+func (sh *strictHandler) ListChatMessages(w http.ResponseWriter, r *http.Request, streamId StreamId, params ListChatMessagesParams) {
+	var request ListChatMessagesRequestObject
+
+	request.StreamId = streamId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListChatMessages(ctx, request.(ListChatMessagesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListChatMessages")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListChatMessagesResponseObject); ok {
+		if err := validResponse.VisitListChatMessagesResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// StartCollection operation middleware
+func (sh *strictHandler) StartCollection(w http.ResponseWriter, r *http.Request, streamId StreamId) {
+	var request StartCollectionRequestObject
+
+	request.StreamId = streamId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.StartCollection(ctx, request.(StartCollectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "StartCollection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(StartCollectionResponseObject); ok {
+		if err := validResponse.VisitStartCollectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetLatestCollection operation middleware
+func (sh *strictHandler) GetLatestCollection(w http.ResponseWriter, r *http.Request, streamId StreamId) {
+	var request GetLatestCollectionRequestObject
+
+	request.StreamId = streamId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetLatestCollection(ctx, request.(GetLatestCollectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetLatestCollection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetLatestCollectionResponseObject); ok {
+		if err := validResponse.VisitGetLatestCollectionResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {
