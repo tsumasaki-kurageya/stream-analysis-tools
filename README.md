@@ -85,7 +85,9 @@ YSA_YOUTUBE_API_KEY=<api-key> ./apps/api/bin/main-api
 ```
 
 The API applies ordered migrations at startup. `YSA_MIGRATIONS_DIR` defaults to
-`migrations`, relative to the process working directory.
+`migrations`, relative to the process working directory. It also runs the reservation monitor with
+PostgreSQL leases; `YSA_RESERVATION_MONITOR_WORKER_ID` can set a stable instance identifier and
+defaults to the host name.
 
 The default local connection is
 `postgresql://stream_analysis:stream_analysis_local@localhost:5432/stream_analysis?sslmode=disable`.

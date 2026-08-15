@@ -14,6 +14,7 @@ func TestTransitionAdvancesReservationThroughCollection(t *testing.T) {
 	}{
 		{name: "approach scheduled start", from: StateScheduled, event: EventMonitor, want: StateMonitoring},
 		{name: "detect live broadcast from schedule", from: StateScheduled, event: EventBroadcastStarted, want: StateLive},
+		{name: "recover after scheduled broadcast ended", from: StateScheduled, event: EventBroadcastEnded, want: StateWaitingForArchive},
 		{name: "detect live broadcast while monitoring", from: StateMonitoring, event: EventBroadcastStarted, want: StateLive},
 		{name: "detect ended broadcast while monitoring", from: StateMonitoring, event: EventBroadcastEnded, want: StateWaitingForArchive},
 		{name: "detect ended live broadcast", from: StateLive, event: EventBroadcastEnded, want: StateWaitingForArchive},

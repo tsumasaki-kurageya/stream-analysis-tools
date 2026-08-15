@@ -3,9 +3,14 @@ package reservations
 import (
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 var ErrInvalidTransition = errors.New("invalid reservation transition")
+var ErrLeaseLost = errors.New("reservation lease is no longer owned by this worker")
+var ErrNotFound = errors.New("reservation not found")
 
 type State string
 
@@ -34,10 +39,41 @@ const (
 	EventCollectionFailed           Event = "collection_failed"
 )
 
+type Reservation struct {
+	ID                 uuid.UUID
+	YouTubeVideoID     string
+	SourceURL          string
+	State              State
+	ScheduledStartAt   *time.Time
+	ActualStartAt      *time.Time
+	ActualEndAt        *time.Time
+	NextCheckAt        time.Time
+	LastCheckedAt      *time.Time
+	MonitorAttempt     int
+	LastErrorCode      *string
+	LastErrorMessage   *string
+	LastErrorRetryable *bool
+	StreamID           *uuid.UUID
+	CollectionJobID    *uuid.UUID
+}
+
+type Lease struct {
+	WorkerID    string
+	HeartbeatAt time.Time
+	ExpiresAt   time.Time
+	Revision    int64
+}
+
+type ClaimedReservation struct {
+	Reservation
+	Lease Lease
+}
+
 var transitions = map[State]map[Event]State{
 	StateScheduled: {
 		EventMonitor:                    StateMonitoring,
 		EventBroadcastStarted:           StateLive,
+		EventBroadcastEnded:             StateWaitingForArchive,
 		EventCancel:                     StateCanceled,
 		EventTransientMonitoringFailure: StateScheduled,
 		EventPermanentMonitoringFailure: StateFailed,

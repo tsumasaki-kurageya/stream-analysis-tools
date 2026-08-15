@@ -11,6 +11,7 @@ import (
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/collections"
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/database"
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/httpapi"
+	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/reservations"
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/streams"
 	"github.com/tsumasaki-kurageya/stream-analysis-tools/apps/api/internal/youtube"
 )
@@ -53,6 +54,14 @@ func main() {
 	}
 	streamService := streams.NewService(streams.NewPostgresRepository(pool), metadataClient)
 	collectionService := collections.NewService(collections.NewPostgresRepository(pool))
+	reservationMonitor := reservations.NewMonitor(
+		reservations.NewPostgresRepository(pool),
+		metadataClient,
+		reservationMonitorWorkerID(),
+		time.Now,
+		2*time.Minute,
+	)
+	go runReservationMonitor(context.Background(), reservationMonitor)
 
 	address := ":" + envOrDefault("PORT", "8080")
 	server := &http.Server{
@@ -65,6 +74,37 @@ func main() {
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
+}
+
+func runReservationMonitor(ctx context.Context, monitor *reservations.Monitor) {
+	const pollInterval = time.Second
+	for {
+		didWork, err := monitor.RunOnce(ctx)
+		if err != nil {
+			log.Printf("reservation monitor: %v", err)
+		}
+		if didWork && err == nil {
+			continue
+		}
+		timer := time.NewTimer(pollInterval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return
+		case <-timer.C:
+		}
+	}
+}
+
+func reservationMonitorWorkerID() string {
+	if configured := os.Getenv("YSA_RESERVATION_MONITOR_WORKER_ID"); configured != "" {
+		return configured
+	}
+	hostname, err := os.Hostname()
+	if err == nil && hostname != "" {
+		return hostname
+	}
+	return "main-api"
 }
 
 func envOrDefault(name string, fallback string) string {
