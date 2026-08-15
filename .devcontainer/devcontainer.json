@@ -1,0 +1,59 @@
+{
+  "name": "Stream Analysis Tools",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "GO_VERSION": "1.26.5",
+      "UV_VERSION": "0.11.33"
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/node:2": {
+      "version": "24.14.0",
+      "npmVersion": "11.9.0",
+      "pnpmVersion": "none"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.13.15",
+      "installTools": false
+    },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "version": "latest",
+      "moby": true
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+  "postCreateCommand": "make bootstrap",
+  "forwardPorts": [5173, 8080, 5432],
+  "portsAttributes": {
+    "5173": {
+      "label": "Web UI"
+    },
+    "8080": {
+      "label": "Main API"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": true,
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/apps/worker/.venv/bin/python",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[typescriptreact]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        }
+      }
+    }
+  }
+}

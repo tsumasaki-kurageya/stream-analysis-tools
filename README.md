@@ -26,6 +26,25 @@ Exact local tool versions are recorded in `.tool-versions`. Each application als
 
 ## Local development
 
+### Dev Container
+
+With Docker running, open the repository in a Dev Container-compatible editor and choose
+**Reopen in Container**. The container installs the pinned Node.js, Go, Python, and uv versions
+recorded in `.tool-versions`, plus Docker CLI and Compose support, PostgreSQL client tools,
+ShellCheck, and GitHub CLI. It also runs `make bootstrap` after the container is created.
+
+The container reuses the host Docker daemon, so the existing database and integration-test
+commands work unchanged:
+
+```sh
+make db-up
+make db-integration-test
+```
+
+Ports 5173 (Web UI), 8080 (Main API), and 5432 (PostgreSQL) are forwarded automatically.
+
+### Manual setup
+
 Install all dependencies:
 
 ```sh

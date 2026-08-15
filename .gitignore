@@ -23,7 +23,8 @@ apps/web/test-results/
 
 # Editors and operating systems
 .idea/
-.vscode/
+.vscode/*
+!.vscode/extensions.json
 .DS_Store
 
 # Local environment
