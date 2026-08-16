@@ -1,12 +1,12 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
-  ApiProblem,
   cancelReservation,
   createReservation,
   getReservation,
   listReservations,
   type Reservation,
 } from "./api/client";
+import { messageForCode, userFacingError } from "./userMessages";
 
 const POLL_INTERVAL_MS = 2_000;
 const TERMINAL_STATES = new Set<Reservation["state"]>([
@@ -24,7 +24,7 @@ export function ReservationsPage({
 }) {
   const detailId = path.match(/^\/reservations\/([^/]+)$/)?.[1];
   return detailId ? (
-    <ReservationDetail id={detailId} />
+    <ReservationDetail id={detailId} onNavigate={onNavigate} />
   ) : (
     <ReservationIndex onNavigate={onNavigate} />
   );
@@ -63,11 +63,10 @@ function ReservationIndex({
   return (
     <>
       <section className="hero reservation-hero">
-        <p className="eyebrow">Automatic collection</p>
-        <h1>Reserve a livestream before it ends.</h1>
+        <p className="eyebrow">自動収集</p>
+        <h1>配信終了前に、収集を予約。</h1>
         <p className="lede">
-          We’ll monitor the broadcast and collect its chat replay when the
-          archive is ready.
+          配信状態を自動で確認し、アーカイブの準備ができたらチャットリプレイを収集します。
         </p>
         <form className="registration-form" onSubmit={submit}>
           <label htmlFor="reservation-url">YouTube URL</label>
@@ -81,7 +80,7 @@ function ReservationIndex({
               onChange={(event) => setURL(event.target.value)}
             />
             <button disabled={submitting} type="submit">
-              {submitting ? "Reserving…" : "Create reservation"}
+              {submitting ? "予約しています…" : "収集を予約"}
             </button>
           </div>
         </form>
@@ -94,19 +93,21 @@ function ReservationIndex({
       <section className="library" aria-labelledby="reservations-heading">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Monitoring queue</p>
-            <h2 id="reservations-heading">Reservations</h2>
+            <p className="eyebrow">監視キュー</p>
+            <h2 id="reservations-heading">予約一覧</h2>
           </div>
-          <span className="count">{items?.length ?? 0} total</span>
+          <span className="count">全{items?.length ?? 0}件</span>
         </div>
         {items === undefined ? (
           <p className="loading-state" role="status">
-            Loading reservations…
+            予約を読み込んでいます…
           </p>
         ) : items.length === 0 ? (
           <div className="empty-state">
-            <p>No reservations yet.</p>
-            <span>Add a scheduled or live YouTube URL above.</span>
+            <p>予約はまだありません。</p>
+            <span>
+              配信予定またはライブ配信中の YouTube URL を追加してください。
+            </span>
           </div>
         ) : (
           <div className="reservation-list">
@@ -136,7 +137,13 @@ function ReservationIndex({
   );
 }
 
-function ReservationDetail({ id }: { id: string }) {
+function ReservationDetail({
+  id,
+  onNavigate,
+}: {
+  id: string;
+  onNavigate: (path: string) => void;
+}) {
   const [reservation, setReservation] = useState<Reservation>();
   const [error, setError] = useState<string>();
   const [canceling, setCanceling] = useState(false);
@@ -184,7 +191,7 @@ function ReservationDetail({ id }: { id: string }) {
   if (!reservation && !error)
     return (
       <p className="loading-state" role="status">
-        Loading reservation…
+        予約を読み込んでいます…
       </p>
     );
   if (!reservation)
@@ -196,8 +203,15 @@ function ReservationDetail({ id }: { id: string }) {
 
   return (
     <article className="reservation-detail">
-      <a className="back-link" href="/reservations">
-        ← Back to reservations
+      <a
+        className="back-link"
+        href="/reservations"
+        onClick={(event) => {
+          event.preventDefault();
+          onNavigate("/reservations");
+        }}
+      >
+        ← 予約一覧に戻る
       </a>
       {error ? (
         <p className="inline-error" role="alert">
@@ -206,7 +220,7 @@ function ReservationDetail({ id }: { id: string }) {
       ) : null}
       <div className="reservation-detail-heading">
         <div>
-          <p className="eyebrow">Reservation {reservation.youtubeVideoId}</p>
+          <p className="eyebrow">予約 {reservation.youtubeVideoId}</p>
           <h1>{stateLabel(reservation.state)}</h1>
           <p className="lede">{nextAction(reservation)}</p>
         </div>
@@ -216,15 +230,15 @@ function ReservationDetail({ id }: { id: string }) {
       </div>
       <dl className="metadata-grid reservation-metadata">
         <div>
-          <dt>Next check</dt>
+          <dt>次回確認</dt>
           <dd>{formatDateTime(reservation.nextCheckAt)}</dd>
         </div>
         <div>
-          <dt>Monitor attempts</dt>
+          <dt>監視試行回数</dt>
           <dd>{reservation.monitorAttempt}</dd>
         </div>
         <div>
-          <dt>Scheduled start</dt>
+          <dt>配信予定時刻</dt>
           <dd>{formatDateTime(reservation.scheduledStartAt)}</dd>
         </div>
       </dl>
@@ -233,12 +247,12 @@ function ReservationDetail({ id }: { id: string }) {
           className="reservation-issue"
           aria-labelledby="monitoring-issue"
         >
-          <h2 id="monitoring-issue">Monitoring issue</h2>
-          <p>{reservation.lastErrorMessage}</p>
+          <h2 id="monitoring-issue">監視エラー</h2>
+          <p>{messageForCode(reservation.lastErrorCode)}</p>
           <span>
             {reservation.lastErrorRetryable
-              ? "Monitoring will retry automatically."
-              : "Monitoring cannot continue automatically."}
+              ? "監視は自動的に再試行されます。"
+              : "監視を自動で継続できません。"}
           </span>
         </section>
       ) : null}
@@ -247,18 +261,18 @@ function ReservationDetail({ id }: { id: string }) {
           className="reservation-issue"
           aria-labelledby="collection-issue"
         >
-          <h2 id="collection-issue">Collection issue</h2>
-          <p>{reservation.collectionError.message}</p>
+          <h2 id="collection-issue">収集エラー</h2>
+          <p>{messageForCode(reservation.collectionError.code)}</p>
           <span>
             {reservation.collectionError.retryable
-              ? "Collection can be retried from the stream page."
-              : "Collection cannot be retried automatically."}
+              ? "ストリーム画面から収集を再試行できます。"
+              : "収集を自動では再試行できません。"}
           </span>
         </section>
       ) : null}
       <div className="reservation-actions">
         <a href={reservation.sourceUrl} target="_blank" rel="noreferrer">
-          Open on YouTube
+          YouTube で開く
         </a>
         {reservation.canCancel ? (
           <button
@@ -266,12 +280,19 @@ function ReservationDetail({ id }: { id: string }) {
             disabled={canceling}
             onClick={() => void cancel()}
           >
-            {canceling ? "Canceling…" : "Cancel reservation"}
+            {canceling ? "キャンセルしています…" : "予約をキャンセル"}
           </button>
         ) : null}
         {reservation.state === "completed" && reservation.streamId ? (
-          <a className="primary-link" href={`/streams/${reservation.streamId}`}>
-            Open collected stream
+          <a
+            className="primary-link"
+            href={`/streams/${reservation.streamId}`}
+            onClick={(event) => {
+              event.preventDefault();
+              onNavigate(`/streams/${reservation.streamId}`);
+            }}
+          >
+            収集済みストリームを開く
           </a>
         ) : null}
       </div>
@@ -281,42 +302,43 @@ function ReservationDetail({ id }: { id: string }) {
 
 function stateLabel(state: Reservation["state"]): string {
   return {
-    scheduled: "Scheduled",
-    monitoring: "Monitoring",
-    live: "Live",
-    waiting_for_archive: "Waiting for archive",
-    collecting: "Collecting",
-    completed: "Completed",
-    failed: "Failed",
-    canceled: "Canceled",
+    scheduled: "配信待ち",
+    monitoring: "監視中",
+    live: "ライブ配信中",
+    waiting_for_archive: "アーカイブ待ち",
+    collecting: "収集中",
+    completed: "完了",
+    failed: "失敗",
+    canceled: "キャンセル済み",
   }[state];
 }
 
 function nextAction(reservation: Reservation): string {
   return {
-    scheduled: "Waiting until the stream approaches its scheduled start.",
-    monitoring: "Checking YouTube for the broadcast status.",
-    live: "The stream is live. Monitoring continues until it ends.",
+    scheduled: "配信予定時刻が近づくまで待機しています。",
+    monitoring: "YouTube で配信状態を確認しています。",
+    live: "ライブ配信中です。終了まで監視を続けます。",
     waiting_for_archive:
-      "Waiting for YouTube to prepare the archive and chat replay.",
-    collecting: "Collecting and saving the archived chat replay.",
-    completed: "Collection is complete. Open the stream to explore its chat.",
-    failed: "Monitoring stopped. Review the monitoring issue below.",
-    canceled: "This reservation was canceled. No further work will run.",
+      "YouTube がアーカイブとチャットリプレイを準備するのを待っています。",
+    collecting: "アーカイブされたチャットリプレイを収集・保存しています。",
+    completed: "収集が完了しました。ストリームを開いてチャットを確認できます。",
+    failed: "監視を停止しました。下の監視エラーを確認してください。",
+    canceled: "予約はキャンセルされました。以降の処理は実行されません。",
   }[reservation.state];
 }
 
 function formatDateTime(value?: string): string {
   return value
-    ? new Intl.DateTimeFormat("en", {
+    ? new Intl.DateTimeFormat("ja-JP", {
         dateStyle: "medium",
         timeStyle: "short",
       }).format(new Date(value))
-    : "Not available";
+    : "未設定";
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof ApiProblem
-    ? error.problem.detail
-    : "The reservation request could not be completed. Try again.";
+  return userFacingError(
+    error,
+    "予約リクエストを完了できませんでした。もう一度お試しください。",
+  );
 }

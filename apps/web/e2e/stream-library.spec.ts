@@ -22,33 +22,81 @@ test("registers an ended stream, restores it, and opens it from the library", as
   await page.goto("/streams");
 
   await expect(
-    page.getByRole("heading", { name: "Save the streams worth returning to." }),
+    page.getByRole("heading", { name: "動画とチャットを、ひとつの場所で。" }),
   ).toBeVisible();
   await page
     .getByRole("textbox", { name: "YouTube URL" })
     .fill("https://youtu.be/dQw4w9WgXcQ");
-  await page.getByRole("button", { name: "Preview stream" }).click();
+  await page.getByRole("button", { name: "ストリームをプレビュー" }).click();
   await expect(
     page.getByRole("heading", { name: "An evening of live music" }),
   ).toBeVisible();
   await expect(page.getByText("Harbor Sessions").first()).toBeVisible();
 
-  await page.getByRole("button", { name: "Save to library" }).click();
+  await page.getByRole("button", { name: "ライブラリに保存" }).click();
   await expect(page).toHaveURL(`/streams/${streamId}`);
   await expect(
-    page.getByRole("link", { name: "Back to library" }),
+    page.getByRole("link", { name: "ライブラリに戻る" }),
   ).toBeVisible();
 
   await page.reload();
   await expect(
     page.getByRole("heading", { name: "An evening of live music" }),
   ).toBeVisible();
-  await expect(page.getByText("August 10, 2026")).toBeVisible();
+  await expect(page.getByText("2026年8月10日")).toBeVisible();
 
-  await page.getByRole("link", { name: "Back to library" }).click();
+  await page.getByRole("link", { name: "ライブラリに戻る" }).click();
   await expect(page).toHaveURL("/streams");
   await page.getByRole("link", { name: "An evening of live music" }).click();
   await expect(page).toHaveURL(`/streams/${streamId}`);
+});
+
+test("reopens a preview from history without entering the URL again", async ({
+  page,
+}) => {
+  await installStreamApi(page);
+  await page.goto("/streams");
+  await page
+    .getByRole("textbox", { name: "YouTube URL" })
+    .fill(preview.canonicalUrl);
+  await page.getByRole("button", { name: "ストリームをプレビュー" }).click();
+  await expect(
+    page.getByRole("heading", { name: preview.title }),
+  ).toBeVisible();
+
+  await page.reload();
+  await page
+    .getByRole("button", { name: `${preview.title}を再び開く` })
+    .click();
+
+  await expect(
+    page.getByRole("heading", { name: preview.title }),
+  ).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "YouTube URL" })).toHaveValue(
+    preview.canonicalUrl,
+  );
+});
+
+test("keeps the main workflow reachable while panels are toggled on mobile", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await installStreamApi(page);
+  await page.goto("/streams");
+
+  const panelToggle = page.getByRole("button", { name: "左パネルを閉じる" });
+  await panelToggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("complementary", { name: "ストリームライブラリ" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "動画とチャットを、ひとつの場所で。" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "左パネルを開く" }).click();
+  await expect(
+    page.getByRole("complementary", { name: "ストリームライブラリ" }),
+  ).toBeVisible();
 });
 
 test("starts, restores, retries, and browses a chat collection", async ({
@@ -57,31 +105,33 @@ test("starts, restores, retries, and browses a chat collection", async ({
   await installCollectionApi(page);
   await page.goto(`/streams/${streamId}`);
 
-  await page.getByRole("button", { name: "Start collection" }).click();
-  await expect(page.getByText("Queued")).toBeVisible();
+  await page.getByRole("button", { name: "収集を開始" }).click();
+  await expect(page.getByText("待機中")).toBeVisible();
 
   await page.reload();
   await expect(
-    page.getByText("YouTube temporarily rejected the collection request."),
+    page.getByText(
+      "YouTube から一時的にデータを取得できませんでした。再試行してください。",
+    ),
   ).toBeVisible({ timeout: 7_000 });
   await expect(
     page.getByText(
-      "1 chat message could not be persisted. Available messages remain searchable.",
+      "1件のチャットを保存できませんでした。 保存済みのメッセージは引き続き検索できます。",
     ),
   ).toBeVisible();
   await expect(
-    page.getByRole("search", { name: "Search collected chat" }),
+    page.getByRole("search", { name: "収集済みチャットを検索" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("list", { name: "Collected chat" }).getByRole("listitem"),
+    page.getByRole("list", { name: "収集済みチャット" }).getByRole("listitem"),
   ).toHaveCount(2);
 
-  await page.getByRole("button", { name: "Retry collection" }).click();
-  await expect(page.getByText("Queued")).toBeVisible();
-  await expect(page.getByText("Succeeded")).toBeVisible();
+  await page.getByRole("button", { name: "収集を再試行" }).click();
+  await expect(page.getByText("待機中")).toBeVisible();
+  await expect(page.getByText("完了")).toBeVisible();
   await expect(page.getByText("3", { exact: true })).toBeVisible();
 
-  const chat = page.getByRole("list", { name: "Collected chat" });
+  const chat = page.getByRole("list", { name: "収集済みチャット" });
   await expect(chat.getByRole("listitem")).toHaveCount(2);
   await expect(chat.getByRole("listitem").nth(0)).toContainText(
     "Opening message",
@@ -90,7 +140,7 @@ test("starts, restores, retries, and browses a chat collection", async ({
     "Later message",
   );
 
-  await page.getByRole("button", { name: "Load more chat" }).click();
+  await page.getByRole("button", { name: "さらに読み込む" }).click();
   await expect(chat.getByRole("listitem")).toHaveCount(3);
   await expect(chat.getByRole("listitem").nth(2)).toContainText(
     "Final message",
@@ -104,24 +154,24 @@ test("keeps chat synchronized with playback and seeks from a message", async ({
   await installFakeYouTubePlayer(page);
   await page.goto(`/streams/${streamId}`);
 
-  await expect(page.getByText("Player ready")).toBeVisible();
+  await expect(page.getByText("再生できます")).toBeVisible();
   await page.getByRole("button", { name: "Play at 1:05" }).click();
 
-  const chat = page.getByRole("list", { name: "Collected chat" });
+  const chat = page.getByRole("list", { name: "収集済みチャット" });
   await expect(chat.getByRole("listitem").nth(1)).toHaveAttribute(
     "aria-current",
     "time",
   );
-  await expect(page.getByText("Playback 1:05")).toBeVisible();
+  await expect(page.getByText("再生位置 1:05")).toBeVisible();
 
   await chat
-    .getByRole("button", { name: "Seek to 0:05: Opening message" })
+    .getByRole("button", { name: "0:05へ移動: Opening message" })
     .click();
   await expect(chat.getByRole("listitem").nth(0)).toHaveAttribute(
     "aria-current",
     "time",
   );
-  await expect(page.getByText("Playback 0:05")).toBeVisible();
+  await expect(page.getByText("再生位置 0:05")).toBeVisible();
   await expect(page.getByText("Fake player at 5 seconds")).toBeVisible();
 });
 
@@ -132,27 +182,27 @@ test("searches chat and seeks playback from a keyboard-selected result", async (
   await installFakeYouTubePlayer(page);
   await page.goto(`/streams/${streamId}`);
 
-  await expect(page.getByText("Player ready")).toBeVisible();
-  const search = page.getByRole("search", { name: "Search collected chat" });
+  await expect(page.getByText("再生できます")).toBeVisible();
+  const search = page.getByRole("search", { name: "収集済みチャットを検索" });
   await search
-    .getByRole("searchbox", { name: "Search collected chat" })
+    .getByRole("searchbox", { name: "収集済みチャットを検索" })
     .fill("later");
   await page.keyboard.press("Enter");
 
-  const results = page.getByRole("list", { name: "Chat search results" });
+  const results = page.getByRole("list", { name: "チャット検索結果" });
   await expect(results).toContainText("Later message");
   const result = results.getByRole("button", {
-    name: "Seek to 1:05: Later message",
+    name: "1:05へ移動: Later message",
   });
   await result.focus();
   await page.keyboard.press("Enter");
 
-  await expect(page.getByText("Playback 1:05")).toBeVisible();
+  await expect(page.getByText("再生位置 1:05")).toBeVisible();
   await expect(page.getByText("Fake player at 65 seconds")).toBeVisible();
   await expect(result).toHaveAttribute("aria-current", "time");
   await expect(
     page
-      .getByRole("list", { name: "Collected chat" })
+      .getByRole("list", { name: "収集済みチャット" })
       .getByRole("listitem")
       .nth(1),
   ).toHaveAttribute("aria-current", "time");
@@ -166,13 +216,13 @@ test("keeps collected chat available when YouTube embedding fails", async ({
   await page.goto(`/streams/${streamId}`);
 
   await expect(
-    page.getByText("This video cannot be played in the embedded player."),
+    page.getByText("この動画は埋め込みプレイヤーで再生できません。"),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Open this video on YouTube" }),
+    page.getByRole("link", { name: "YouTube で動画を開く" }),
   ).toHaveAttribute("href", preview.canonicalUrl);
 
-  const chat = page.getByRole("list", { name: "Collected chat" });
+  const chat = page.getByRole("list", { name: "収集済みチャット" });
   await expect(chat.getByRole("listitem")).toHaveCount(2);
   await expect(chat).toContainText("Opening message");
 });
