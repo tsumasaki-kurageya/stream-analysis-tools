@@ -15,19 +15,31 @@ const preview = {
   metadataFetchedAt: "2026-08-14T00:00:00Z",
 };
 
-test("registers an ended stream, restores it, and opens it from the library", async ({
+test("FLW-001 / FLW-002: registers and opens a stream from the list", async ({
   page,
 }) => {
   await installStreamApi(page);
   await page.goto("/streams");
 
+  await expect(page.getByRole("heading", { name: "配信一覧" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "YouTube URL" })).toHaveCount(
+    0,
+  );
   await expect(
-    page.getByRole("heading", { name: "動画とチャットを、ひとつの場所で。" }),
+    page.getByRole("columnheader", { name: "タイトル" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("columnheader", { name: "チャット件数" }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "配信を追加" }).click();
   await page
     .getByRole("textbox", { name: "YouTube URL" })
     .fill("https://youtu.be/dQw4w9WgXcQ");
-  await page.getByRole("button", { name: "ストリームをプレビュー" }).click();
+  await expect(
+    page.getByRole("button", { name: "ライブラリに保存" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "プレビュー" }).click();
   await expect(
     page.getByRole("heading", { name: "An evening of live music" }),
   ).toBeVisible();
@@ -39,64 +51,16 @@ test("registers an ended stream, restores it, and opens it from the library", as
     page.getByRole("link", { name: "ライブラリに戻る" }),
   ).toBeVisible();
 
-  await page.reload();
-  await expect(
-    page.getByRole("heading", { name: "An evening of live music" }),
-  ).toBeVisible();
-  await expect(page.getByText("2026年8月10日")).toBeVisible();
-
   await page.getByRole("link", { name: "ライブラリに戻る" }).click();
   await expect(page).toHaveURL("/streams");
+  await expect(page.getByRole("heading", { name: "配信一覧" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "An evening of live music" }),
+  ).toBeVisible();
+  await expect(page.getByText("0", { exact: true })).toBeVisible();
+
   await page.getByRole("link", { name: "An evening of live music" }).click();
   await expect(page).toHaveURL(`/streams/${streamId}`);
-});
-
-test("reopens a preview from history without entering the URL again", async ({
-  page,
-}) => {
-  await installStreamApi(page);
-  await page.goto("/streams");
-  await page
-    .getByRole("textbox", { name: "YouTube URL" })
-    .fill(preview.canonicalUrl);
-  await page.getByRole("button", { name: "ストリームをプレビュー" }).click();
-  await expect(
-    page.getByRole("heading", { name: preview.title }),
-  ).toBeVisible();
-
-  await page.reload();
-  await page
-    .getByRole("button", { name: `${preview.title}を再び開く` })
-    .click();
-
-  await expect(
-    page.getByRole("heading", { name: preview.title }),
-  ).toBeVisible();
-  await expect(page.getByRole("textbox", { name: "YouTube URL" })).toHaveValue(
-    preview.canonicalUrl,
-  );
-});
-
-test("keeps the main workflow reachable while panels are toggled on mobile", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await installStreamApi(page);
-  await page.goto("/streams");
-
-  const panelToggle = page.getByRole("button", { name: "左パネルを閉じる" });
-  await panelToggle.focus();
-  await page.keyboard.press("Enter");
-  await expect(
-    page.getByRole("complementary", { name: "ストリームライブラリ" }),
-  ).toHaveCount(0);
-  await expect(
-    page.getByRole("heading", { name: "動画とチャットを、ひとつの場所で。" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "左パネルを開く" }).click();
-  await expect(
-    page.getByRole("complementary", { name: "ストリームライブラリ" }),
-  ).toBeVisible();
 });
 
 test("starts, restores, retries, and browses a chat collection", async ({
@@ -258,7 +222,19 @@ async function installStreamApi(page: Page) {
 
     if (request.method() === "GET" && pathname === "/v1/streams") {
       await route.fulfill({
-        json: { items: savedStream ? [savedStream] : [], limit: 20, offset: 0 },
+        json: {
+          items: savedStream
+            ? [
+                {
+                  ...savedStream,
+                  collectionStatus: undefined,
+                  chatMessageCount: 0,
+                },
+              ]
+            : [],
+          limit: 20,
+          offset: 0,
+        },
       });
       return;
     }

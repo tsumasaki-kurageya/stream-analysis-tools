@@ -1,0 +1,116 @@
+.stream-list-page {
+  display: grid;
+  gap: 1.5rem;
+  width: min(84rem, 100%);
+  margin: 0 auto;
+}
+
+.stream-list-page .page-heading-row h1 {
+  margin: 0;
+  color: var(--navy);
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  letter-spacing: -0.04em;
+}
+
+.stream-add-panel {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: var(--paper);
+}
+
+.stream-add-panel h2 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 1rem;
+}
+
+.stream-add-form {
+  max-width: none;
+}
+
+.stream-add-form label {
+  color: var(--navy);
+}
+
+.stream-add-form .input-row input {
+  border-color: var(--line);
+  background: white;
+  color: var(--ink);
+}
+
+.stream-add-form .input-row input::placeholder {
+  color: var(--muted);
+}
+
+.stream-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--paper);
+}
+
+.stream-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.stream-table th,
+.stream-table td {
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.stream-table th {
+  background: rgb(19 44 57 / 4%);
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.stream-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.stream-table tbody tr:hover {
+  background: rgb(23 107 104 / 5%);
+}
+
+.stream-table td:first-child {
+  max-width: 28rem;
+  white-space: normal;
+}
+
+.stream-table a {
+  color: var(--teal-dark);
+  font-weight: 750;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2rem;
+}
+
+.stream-add-panel .preview-card {
+  margin: 0;
+  border: 1px solid var(--line);
+  box-shadow: none;
+}
+
+@media (max-width: 720px) {
+  .stream-list-page .page-heading-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .stream-list-page .page-heading-row .secondary-button {
+    align-self: flex-start;
+  }
+
+  .stream-add-form .input-row {
+    grid-template-columns: 1fr;
+  }
+}

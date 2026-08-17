@@ -1,6 +1,7 @@
 import type { components } from "./generated/v1";
 
 export type Stream = components["schemas"]["Stream"];
+export type StreamListItem = components["schemas"]["StreamListItem"];
 export type StreamList = components["schemas"]["StreamList"];
 export type StreamPreview = components["schemas"]["StreamPreview"];
 export type CollectionJob = components["schemas"]["CollectionJob"];
@@ -114,7 +115,7 @@ export function searchChatMessages(
 
 export async function findStreamByYouTubeVideoId(
   youtubeVideoId: string,
-): Promise<Stream | undefined> {
+): Promise<StreamListItem | undefined> {
   const pageSize = 100;
   for (let offset = 0; ; offset += pageSize) {
     const page = await listStreams(pageSize, offset);
