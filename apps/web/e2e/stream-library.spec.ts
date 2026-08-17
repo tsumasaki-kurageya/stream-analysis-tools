@@ -50,6 +50,11 @@ test("FLW-001 / FLW-002: registers and opens a stream from the list", async ({
   await expect(
     page.getByRole("link", { name: "ライブラリに戻る" }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "配信情報を表示" }).click();
+  await expect(page.getByRole("dialog", { name: "配信情報" })).toContainText(
+    preview.youtubeVideoId,
+  );
+  await page.getByRole("button", { name: "配信情報を閉じる" }).click();
 
   await page.getByRole("link", { name: "ライブラリに戻る" }).click();
   await expect(page).toHaveURL("/streams");
@@ -68,18 +73,22 @@ test("starts, restores, retries, and browses a chat collection", async ({
 }) => {
   await installCollectionApi(page);
   await page.goto(`/streams/${streamId}`);
+  const workspace = page.getByRole("complementary", { name: "チャットと収集" });
 
   await page.getByRole("button", { name: "収集を開始" }).click();
-  await expect(page.getByText("待機中")).toBeVisible();
+  await expect(workspace.getByText("待機中")).toBeVisible();
 
   await page.reload();
+  const restoredWorkspace = page.getByRole("complementary", {
+    name: "チャットと収集",
+  });
   await expect(
-    page.getByText(
+    restoredWorkspace.getByText(
       "YouTube から一時的にデータを取得できませんでした。再試行してください。",
     ),
   ).toBeVisible({ timeout: 7_000 });
   await expect(
-    page.getByText(
+    restoredWorkspace.getByText(
       "1件のチャットを保存できませんでした。 保存済みのメッセージは引き続き検索できます。",
     ),
   ).toBeVisible();
@@ -91,9 +100,9 @@ test("starts, restores, retries, and browses a chat collection", async ({
   ).toHaveCount(2);
 
   await page.getByRole("button", { name: "収集を再試行" }).click();
-  await expect(page.getByText("待機中")).toBeVisible();
-  await expect(page.getByText("完了")).toBeVisible();
-  await expect(page.getByText("3", { exact: true })).toBeVisible();
+  await expect(restoredWorkspace.getByText("待機中")).toBeVisible();
+  await expect(restoredWorkspace.getByText("完了")).toBeVisible();
+  await expect(restoredWorkspace.getByText("収集済み · 3件")).toBeVisible();
 
   const chat = page.getByRole("list", { name: "収集済みチャット" });
   await expect(chat.getByRole("listitem")).toHaveCount(2);
@@ -115,11 +124,8 @@ test("keeps chat synchronized with playback and seeks from a message", async ({
   page,
 }) => {
   await installSynchronizedPlaybackApi(page);
-  await installFakeYouTubePlayer(page);
+  await installFakeYouTubePlayer(page, 65);
   await page.goto(`/streams/${streamId}`);
-
-  await expect(page.getByText("再生できます")).toBeVisible();
-  await page.getByRole("button", { name: "Play at 1:05" }).click();
 
   const chat = page.getByRole("list", { name: "収集済みチャット" });
   await expect(chat.getByRole("listitem").nth(1)).toHaveAttribute(
@@ -146,7 +152,9 @@ test("searches chat and seeks playback from a keyboard-selected result", async (
   await installFakeYouTubePlayer(page);
   await page.goto(`/streams/${streamId}`);
 
-  await expect(page.getByText("再生できます")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Play at 1:05" }),
+  ).toBeVisible();
   const search = page.getByRole("search", { name: "収集済みチャットを検索" });
   await search
     .getByRole("searchbox", { name: "収集済みチャットを検索" })
@@ -179,9 +187,6 @@ test("keeps collected chat available when YouTube embedding fails", async ({
   await installUnavailableYouTubePlayer(page);
   await page.goto(`/streams/${streamId}`);
 
-  await expect(
-    page.getByText("この動画は埋め込みプレイヤーで再生できません。"),
-  ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "YouTube で動画を開く" }),
   ).toHaveAttribute("href", preview.canonicalUrl);
@@ -516,7 +521,7 @@ async function installSynchronizedPlaybackApi(page: Page) {
   });
 }
 
-async function installFakeYouTubePlayer(page: Page) {
+async function installFakeYouTubePlayer(page: Page, initialTime = 0) {
   await page.route("https://www.youtube.com/iframe_api", async (route) => {
     await route.fulfill({
       contentType: "application/javascript",
@@ -524,7 +529,7 @@ async function installFakeYouTubePlayer(page: Page) {
 window.YT = {
   PlayerState: { PLAYING: 1 },
   Player: function (element, options) {
-    let currentTime = 0;
+    let currentTime = ${initialTime};
     const control = document.createElement("button");
     const updateControl = () => {
       control.textContent = "Fake player at " + currentTime + " seconds";

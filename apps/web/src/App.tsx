@@ -350,6 +350,10 @@ function StreamDetail({
   const [playbackOffsetMilliseconds, setPlaybackOffsetMilliseconds] =
     useState(0);
   const [seekRequest, setSeekRequest] = useState<PlayerSeekRequest>();
+  const [metadataOpen, setMetadataOpen] = useState(false);
+  const [collectionStatus, setCollectionStatus] = useState<
+    CollectionJob["status"] | null
+  >(null);
 
   function seekTo(offsetMilliseconds: number) {
     setSeekRequest((current) => ({
@@ -359,8 +363,8 @@ function StreamDetail({
   }
 
   return (
-    <article className="stream-detail">
-      <div className="stream-video-pane">
+    <article className="stream-detail timeline-workspace">
+      <header className="timeline-header">
         <a
           className="back-link"
           href="/streams"
@@ -372,54 +376,109 @@ function StreamDetail({
         >
           ← ライブラリに戻る
         </a>
-        <div className="detail-summary">
-          <div className="status-row">
+        <div className="timeline-heading">
+          <div>
+            <h1>{stream.title}</h1>
+            <p className="channel">{stream.channelTitle}</p>
+          </div>
+          <div className="timeline-statuses">
             <span className={`status status-${stream.lifecycleStatus}`}>
               {lifecycleLabel(stream.lifecycleStatus)}
             </span>
-            <span>{formatDuration(stream.durationMs)}</span>
+            <span className="collection-status">
+              {collectionStatus
+                ? collectionStatusLabel(collectionStatus)
+                : "未収集"}
+            </span>
+            <button
+              type="button"
+              className="icon-button metadata-info-button"
+              aria-label="配信情報を表示"
+              onClick={() => setMetadataOpen(true)}
+            >
+              ⓘ
+            </button>
           </div>
-          <h1>{stream.title}</h1>
-          <p className="channel">{stream.channelTitle}</p>
-          <dl className="metadata-grid">
-            <div>
-              <dt>配信日</dt>
-              <dd>
-                {formatDate(stream.actualStartAt ?? stream.scheduledStartAt)}
-              </dd>
-            </div>
-            <div>
-              <dt>長さ</dt>
-              <dd>{formatDuration(stream.durationMs)}</dd>
-            </div>
-            <div>
-              <dt>YouTube 動画 ID</dt>
-              <dd>{stream.youtubeVideoId}</dd>
-            </div>
-          </dl>
-          <a
-            className="youtube-link"
-            href={stream.canonicalUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            YouTube で開く
-          </a>
         </div>
-        <YouTubePlayer
-          videoId={stream.youtubeVideoId}
-          canonicalUrl={stream.canonicalUrl}
-          seekRequest={seekRequest}
-          onTimeChange={setPlaybackOffsetMilliseconds}
-        />
+      </header>
+
+      {metadataOpen ? (
+        <div className="metadata-dialog-backdrop" role="presentation">
+          <section
+            className="metadata-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="metadata-dialog-title"
+          >
+            <div className="metadata-dialog-heading">
+              <h2 id="metadata-dialog-title">配信情報</h2>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="配信情報を閉じる"
+                onClick={() => setMetadataOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <dl className="metadata-grid">
+              <div>
+                <dt>タイトル</dt>
+                <dd>{stream.title}</dd>
+              </div>
+              <div>
+                <dt>チャンネル</dt>
+                <dd>{stream.channelTitle}</dd>
+              </div>
+              <div>
+                <dt>配信日</dt>
+                <dd>
+                  {formatDate(stream.actualStartAt ?? stream.scheduledStartAt)}
+                </dd>
+              </div>
+              <div>
+                <dt>長さ</dt>
+                <dd>{formatDuration(stream.durationMs)}</dd>
+              </div>
+              <div>
+                <dt>配信状態</dt>
+                <dd>{lifecycleLabel(stream.lifecycleStatus)}</dd>
+              </div>
+              <div>
+                <dt>YouTube 動画 ID</dt>
+                <dd>{stream.youtubeVideoId}</dd>
+              </div>
+            </dl>
+            <a
+              className="youtube-link"
+              href={stream.canonicalUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              YouTube で開く
+            </a>
+          </section>
+        </div>
+      ) : null}
+
+      <div className="timeline-content">
+        <div className="stream-video-pane">
+          <YouTubePlayer
+            videoId={stream.youtubeVideoId}
+            canonicalUrl={stream.canonicalUrl}
+            seekRequest={seekRequest}
+            onTimeChange={setPlaybackOffsetMilliseconds}
+          />
+        </div>
+        <aside className="stream-chat-pane" aria-label="チャットと収集">
+          <CollectionWorkspace
+            streamId={stream.id}
+            playbackOffsetMilliseconds={playbackOffsetMilliseconds}
+            onSeek={seekTo}
+            onStatusChange={setCollectionStatus}
+          />
+        </aside>
       </div>
-      <aside className="stream-chat-pane" aria-label="チャットと収集">
-        <CollectionWorkspace
-          streamId={stream.id}
-          playbackOffsetMilliseconds={playbackOffsetMilliseconds}
-          onSeek={seekTo}
-        />
-      </aside>
     </article>
   );
 }
@@ -428,10 +487,12 @@ function CollectionWorkspace({
   streamId,
   playbackOffsetMilliseconds,
   onSeek,
+  onStatusChange,
 }: {
   streamId: string;
   playbackOffsetMilliseconds: number;
   onSeek: (offsetMilliseconds: number) => void;
+  onStatusChange: (status: CollectionJob["status"] | null) => void;
 }) {
   const [collection, setCollection] = useState<CollectionJob | null>();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -443,7 +504,10 @@ function CollectionWorkspace({
     let cancelled = false;
     void getLatestCollection(streamId)
       .then((job) => {
-        if (!cancelled) setCollection(job);
+        if (!cancelled) {
+          setCollection(job);
+          onStatusChange(job.status);
+        }
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -452,6 +516,7 @@ function CollectionWorkspace({
           error.problem.code === "COLLECTION_JOB_NOT_FOUND"
         ) {
           setCollection(null);
+          onStatusChange(null);
           return;
         }
         setRequestError(collectionErrorMessage(error));
@@ -459,7 +524,7 @@ function CollectionWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [streamId]);
+  }, [onStatusChange, streamId]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -472,6 +537,7 @@ function CollectionWorkspace({
           .then((job) => {
             if (cancelled) return;
             setCollection(job);
+            onStatusChange(job.status);
             setRequestError(null);
             if (job.status === "queued" || job.status === "running") {
               schedulePoll();
@@ -490,13 +556,15 @@ function CollectionWorkspace({
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [isActive, streamId]);
+  }, [isActive, onStatusChange, streamId]);
 
   async function submit(action: () => Promise<CollectionJob>) {
     setIsSubmitting(true);
     setRequestError(null);
     try {
-      setCollection(await action());
+      const job = await action();
+      setCollection(job);
+      onStatusChange(job.status);
     } catch (submitError) {
       setRequestError(collectionErrorMessage(submitError));
     } finally {
@@ -511,7 +579,6 @@ function CollectionWorkspace({
     >
       <div className="workspace-heading">
         <div>
-          <p className="eyebrow">チャットリプレイ</p>
           <h2 id="collection-title">収集とチャット</h2>
         </div>
         {collection ? (
@@ -551,20 +618,26 @@ function CollectionWorkspace({
         </div>
       ) : (
         <>
-          <div className="collection-summary">
-            <div>
-              <span>保存済み</span>
-              <strong>{collection.processedCount.toLocaleString()}</strong>
+          {collection.status === "succeeded" ? (
+            <p className="collection-compact-status" role="status">
+              収集済み · {collection.processedCount.toLocaleString()}件
+            </p>
+          ) : (
+            <div className="collection-summary">
+              <div>
+                <span>保存済み</span>
+                <strong>{collection.processedCount.toLocaleString()}</strong>
+              </div>
+              <div>
+                <span>スキップ</span>
+                <strong>{collection.skippedCount.toLocaleString()}</strong>
+              </div>
+              <div>
+                <span>試行回数</span>
+                <strong>{collection.attempt}</strong>
+              </div>
             </div>
-            <div>
-              <span>スキップ</span>
-              <strong>{collection.skippedCount.toLocaleString()}</strong>
-            </div>
-            <div>
-              <span>試行回数</span>
-              <strong>{collection.attempt}</strong>
-            </div>
-          </div>
+          )}
 
           {collection.skippedCount > 0 ? (
             <p className="collection-notice" role="status">
@@ -674,7 +747,6 @@ function ChatSearch({
     <section className="chat-search" aria-labelledby="chat-search-title">
       <div className="chat-heading">
         <div>
-          <p className="eyebrow">場面を探す</p>
           <h3 id="chat-search-title">チャット検索</h3>
         </div>
       </div>
