@@ -154,11 +154,11 @@ describe("primary stream flows", () => {
     ).toBeDefined();
 
     fireEvent.click(screen.getByRole("button", { name: "ライブラリに保存" }));
-
-    expect(window.location.pathname).toBe(`/streams/${stream.id}`);
     expect(
       await screen.findByRole("link", { name: "ライブラリに戻る" }),
     ).toBeDefined();
+
+    expect(window.location.pathname).toBe(`/streams/${stream.id}`);
     expect(screen.queryByRole("button", { name: /右パネルを/ })).toBeNull();
   });
 
