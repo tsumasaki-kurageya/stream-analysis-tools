@@ -55,6 +55,23 @@ func TestRegisterPreservesDuplicateError(t *testing.T) {
 	}
 }
 
+func TestListItemsFallsBackToPlainRepositoryList(t *testing.T) {
+	stream := Stream{ID: uuid.New(), Title: "Fallback stream"}
+	repository := &recordingRepository{listed: []Stream{stream}}
+	service := NewService(repository, nil)
+
+	items, err := service.ListItems(context.Background(), ListOptions{Limit: 20})
+	if err != nil {
+		t.Fatalf("list items: %v", err)
+	}
+	if len(items) != 1 || items[0].ID != stream.ID {
+		t.Fatalf("unexpected list items: %+v", items)
+	}
+	if items[0].CollectionStatus != nil || items[0].ChatMessageCount != 0 {
+		t.Fatalf("fallback list item must not invent analysis data: %+v", items[0])
+	}
+}
+
 type sequenceProvider struct {
 	results []Metadata
 	err     error
@@ -77,6 +94,7 @@ type recordingRepository struct {
 	created     Metadata
 	createCalls int
 	createErr   error
+	listed      []Stream
 }
 
 func (repository *recordingRepository) Create(_ context.Context, metadata Metadata) (Stream, error) {
@@ -111,8 +129,8 @@ func (*recordingRepository) GetByYouTubeVideoID(context.Context, string) (Stream
 	return Stream{}, ErrNotFound
 }
 
-func (*recordingRepository) List(context.Context, ListOptions) ([]Stream, error) {
-	return nil, nil
+func (repository *recordingRepository) List(context.Context, ListOptions) ([]Stream, error) {
+	return repository.listed, nil
 }
 
 func validMetadata(title string, fetchedAt time.Time) Metadata {
