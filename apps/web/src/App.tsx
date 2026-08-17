@@ -937,7 +937,8 @@ function ChatMessageList({
       </div>
       {chatError ? (
         <p className="inline-error" role="alert">
-          {chatError}</p>
+          {chatError}
+        </p>
       ) : null}
       {messages.length === 0 && isLoading ? (
         <p className="chat-empty" role="status">
