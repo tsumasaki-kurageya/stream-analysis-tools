@@ -316,9 +316,30 @@ type StreamLifecycleStatus string
 
 // StreamList defines model for StreamList.
 type StreamList struct {
-	Items  []Stream `json:"items"`
-	Limit  int      `json:"limit"`
-	Offset int      `json:"offset"`
+	Items  []StreamListItem `json:"items"`
+	Limit  int              `json:"limit"`
+	Offset int              `json:"offset"`
+}
+
+// StreamListItem defines model for StreamListItem.
+type StreamListItem struct {
+	ActualEndAt       *time.Time            `json:"actualEndAt,omitempty"`
+	ActualStartAt     *time.Time            `json:"actualStartAt,omitempty"`
+	CanonicalUrl      string                `json:"canonicalUrl"`
+	ChannelId         string                `json:"channelId"`
+	ChannelTitle      string                `json:"channelTitle"`
+	ChatMessageCount  int64                 `json:"chatMessageCount"`
+	CollectionStatus  *CollectionJobStatus  `json:"collectionStatus,omitempty"`
+	CreatedAt         time.Time             `json:"createdAt"`
+	DurationMs        *int64                `json:"durationMs,omitempty"`
+	Id                string                `json:"id"`
+	LifecycleStatus   StreamLifecycleStatus `json:"lifecycleStatus"`
+	MetadataFetchedAt time.Time             `json:"metadataFetchedAt"`
+	ScheduledStartAt  *time.Time            `json:"scheduledStartAt,omitempty"`
+	ThumbnailUrl      *string               `json:"thumbnailUrl,omitempty"`
+	Title             string                `json:"title"`
+	UpdatedAt         time.Time             `json:"updatedAt"`
+	YoutubeVideoId    string                `json:"youtubeVideoId"`
 }
 
 // StreamPreview defines model for StreamPreview.

@@ -53,7 +53,7 @@ export interface paths {
     };
     /**
      * List registered streams
-     * @description Returns registered streams in reverse creation order with offset pagination.
+     * @description Returns registered streams with collection status and chat counts in reverse creation order with offset pagination.
      */
     get: operations["listStreams"];
     put?: never;
@@ -303,8 +303,13 @@ export interface components {
       /** Format: date-time */
       updatedAt: string;
     };
+    StreamListItem: components["schemas"]["Stream"] & {
+      collectionStatus?: components["schemas"]["CollectionJobStatus"];
+      /** Format: int64 */
+      chatMessageCount: number;
+    };
     StreamList: {
-      items: components["schemas"]["Stream"][];
+      items: components["schemas"]["StreamListItem"][];
       limit: number;
       offset: number;
     };
@@ -519,7 +524,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description A page of registered streams. */
+      /** @description A page of registered streams with analysis readiness data. */
       200: {
         headers: {
           [name: string]: unknown;
