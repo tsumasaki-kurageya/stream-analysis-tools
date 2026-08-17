@@ -75,6 +75,24 @@
   font-weight: 700;
 }
 
+.chat-heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.chat-follow-resume {
+  min-height: 2rem;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+.chat-list[data-follow="paused"] {
+  outline: 1px solid var(--line);
+  outline-offset: -1px;
+}
+
 .metadata-dialog-backdrop {
   position: fixed;
   z-index: 20;
@@ -131,7 +149,8 @@
     flex-direction: column;
   }
 
-  .timeline-statuses {
+  .timeline-statuses,
+  .chat-heading-actions {
     justify-content: flex-start;
   }
 }
