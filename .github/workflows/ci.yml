@@ -53,6 +53,13 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      - run: npx prettier --write src/App.test.tsx
+      - name: Capture formatted App test
+        uses: actions/upload-artifact@v7
+        with:
+          name: formatted-app-test
+          path: apps/web/src/App.test.tsx
+          retention-days: 1
       - run: make check build
       - run: npm run test:e2e
       - name: Upload Playwright report
