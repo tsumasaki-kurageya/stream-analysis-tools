@@ -156,6 +156,7 @@ export function App() {
 
   const detailMatch = path.match(/^\/streams\/([^/]+)$/);
   const reservationPath = path.startsWith("/reservations");
+  const streamListPath = !reservationPath && !detailMatch;
   const selectedStreamForPath =
     detailMatch?.[1] === selectedStream?.id ? selectedStream : null;
 
@@ -219,222 +220,181 @@ export function App() {
             予約
           </a>
         </nav>
-        <div className="panel-controls" role="group" aria-label="パネル表示">
-          <button
-            type="button"
-            className="icon-button"
-            aria-pressed={isLeftPanelOpen}
-            aria-label={`左パネルを${isLeftPanelOpen ? "閉じる" : "開く"}`}
-            onClick={() => setIsLeftPanelOpen((open) => !open)}
-          >
-            <span aria-hidden="true">☰</span>
-          </button>
-          <button
-            type="button"
-            className="icon-button"
-            aria-pressed={isRightPanelOpen}
-            aria-label={`右パネルを${isRightPanelOpen ? "閉じる" : "開く"}`}
-            onClick={() => setIsRightPanelOpen((open) => !open)}
-          >
-            <span aria-hidden="true">◫</span>
-          </button>
-        </div>
-      </header>
-
-      <main
-        className={`workspace-layout${isLeftPanelOpen ? "" : " left-panel-closed"}${isRightPanelOpen ? "" : " right-panel-closed"}`}
-      >
-        {error ? (
-          <div className="error-banner" role="alert">
-            <strong>リクエストを完了できませんでした。</strong>
-            <span>{error}</span>
+        {streamListPath ? (
+          <div className="panel-controls" role="group" aria-label="パネル表示">
+            <button
+              type="button"
+              className="icon-button"
+              aria-pressed={isLeftPanelOpen}
+              aria-label={`左パネルを${isLeftPanelOpen ? "閉じる" : "開く"}`}
+              onClick={() => setIsLeftPanelOpen((open) => !open)}
+            >
+              <span aria-hidden="true">☰</span>
+            </button>
+            <button
+              type="button"
+              className="icon-button"
+              aria-pressed={isRightPanelOpen}
+              aria-label={`右パネルを${isRightPanelOpen ? "閉じる" : "開く"}`}
+              onClick={() => setIsRightPanelOpen((open) => !open)}
+            >
+              <span aria-hidden="true">◫</span>
+            </button>
           </div>
         ) : null}
-        {isLeftPanelOpen ? (
-          <aside
-            className="workspace-panel left-panel"
-            aria-label={
-              reservationPath
-                ? "ワークスペースナビゲーション"
-                : "ストリームライブラリ"
-            }
-          >
-            {reservationPath ? (
-              <>
-                <div className="panel-heading">
-                  <div>
-                    <p className="eyebrow">ワークスペース</p>
-                    <h2>収集メニュー</h2>
-                  </div>
+      </header>
+
+      {error ? (
+        <div className="error-banner" role="alert">
+          <strong>リクエストを完了できませんでした。</strong>
+          <span>{error}</span>
+        </div>
+      ) : null}
+
+      {reservationPath ? (
+        <main className="route-main" aria-label="メインコンテンツ">
+          <ReservationsPage path={path} onNavigate={navigate} />
+        </main>
+      ) : detailMatch ? (
+        <main
+          className="route-main stream-workspace-host"
+          aria-label="メインコンテンツ"
+        >
+          {selectedStreamForPath ? (
+            <StreamDetail
+              stream={selectedStreamForPath}
+              onBack={() => navigate("/streams")}
+            />
+          ) : notFound ? (
+            <NotFound />
+          ) : (
+            <p className="loading-state" role="status">
+              ストリームを読み込んでいます…
+            </p>
+          )}
+        </main>
+      ) : (
+        <main
+          className={`workspace-layout${isLeftPanelOpen ? "" : " left-panel-closed"}${isRightPanelOpen ? "" : " right-panel-closed"}`}
+        >
+          {isLeftPanelOpen ? (
+            <aside
+              className="workspace-panel left-panel"
+              aria-label="ストリームライブラリ"
+            >
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">ライブラリ</p>
+                  <h2>保存済み</h2>
                 </div>
-                <nav className="workspace-menu" aria-label="作業エリア">
-                  <a href="/reservations" aria-current="page">
-                    <span aria-hidden="true">◷</span>
-                    予約一覧
-                  </a>
-                  <a
-                    href="/streams"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      navigate("/streams");
-                    }}
-                  >
-                    <span aria-hidden="true">▶</span>
-                    ストリームライブラリ
-                  </a>
-                </nav>
-              </>
-            ) : (
-              <>
-                <div className="panel-heading">
-                  <div>
-                    <p className="eyebrow">ライブラリ</p>
-                    <h2>保存済み</h2>
-                  </div>
-                  <span className="count">{streams.length}件</span>
-                </div>
-                {isLoadingList ? (
-                  <p className="panel-state" role="status">
-                    ストリームを読み込んでいます…
-                  </p>
-                ) : libraryError ? (
-                  <p className="panel-state inline-error" role="alert">
-                    {libraryError}
-                  </p>
-                ) : streams.length === 0 ? (
-                  <p className="panel-state">
-                    保存済みのストリームはありません。
-                  </p>
-                ) : (
-                  <ol className="library-list" aria-label="保存済みストリーム">
-                    {streams.map((stream) => (
-                      <li key={stream.id}>
-                        <a
-                          href={`/streams/${stream.id}`}
-                          aria-label={stream.title}
-                          aria-current={
-                            detailMatch?.[1] === stream.id ? "page" : undefined
-                          }
-                          onClick={(event) => openStream(event, stream)}
-                        >
-                          {stream.thumbnailUrl ? (
-                            <img src={stream.thumbnailUrl} alt="" />
-                          ) : null}
-                          <span>
-                            <strong>{stream.title}</strong>
-                            <small>{stream.channelTitle}</small>
-                          </span>
-                        </a>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </>
-            )}
-            {!reservationPath && previewHistory.length > 0 ? (
-              <section
-                className="preview-history"
-                aria-labelledby="preview-history-title"
-              >
-                <h3 id="preview-history-title">最近のプレビュー</h3>
-                <ol>
-                  {previewHistory.map((item) => (
-                    <li key={item.youtubeVideoId}>
-                      <button
-                        type="button"
-                        aria-label={`${item.title}を再び開く`}
-                        onClick={() => {
-                          setPreview(item);
-                          setUrl(item.canonicalUrl);
-                          if (path !== "/streams") navigate("/streams");
-                        }}
+                <span className="count">{streams.length}件</span>
+              </div>
+              {isLoadingList ? (
+                <p className="panel-state" role="status">
+                  ストリームを読み込んでいます…
+                </p>
+              ) : libraryError ? (
+                <p className="panel-state inline-error" role="alert">
+                  {libraryError}
+                </p>
+              ) : streams.length === 0 ? (
+                <p className="panel-state">
+                  保存済みのストリームはありません。
+                </p>
+              ) : (
+                <ol className="library-list" aria-label="保存済みストリーム">
+                  {streams.map((stream) => (
+                    <li key={stream.id}>
+                      <a
+                        href={`/streams/${stream.id}`}
+                        aria-label={stream.title}
+                        onClick={(event) => openStream(event, stream)}
                       >
-                        {item.thumbnailUrl ? (
-                          <img src={item.thumbnailUrl} alt="" />
+                        {stream.thumbnailUrl ? (
+                          <img src={stream.thumbnailUrl} alt="" />
                         ) : null}
                         <span>
-                          <strong>{item.title}</strong>
-                          <small>{item.channelTitle}</small>
+                          <strong>{stream.title}</strong>
+                          <small>{stream.channelTitle}</small>
                         </span>
-                      </button>
+                      </a>
                     </li>
                   ))}
                 </ol>
-              </section>
-            ) : null}
-          </aside>
-        ) : null}
+              )}
+              {previewHistory.length > 0 ? (
+                <section
+                  className="preview-history"
+                  aria-labelledby="preview-history-title"
+                >
+                  <h3 id="preview-history-title">最近のプレビュー</h3>
+                  <ol>
+                    {previewHistory.map((item) => (
+                      <li key={item.youtubeVideoId}>
+                        <button
+                          type="button"
+                          aria-label={`${item.title}を再び開く`}
+                          onClick={() => {
+                            setPreview(item);
+                            setUrl(item.canonicalUrl);
+                          }}
+                        >
+                          {item.thumbnailUrl ? (
+                            <img src={item.thumbnailUrl} alt="" />
+                          ) : null}
+                          <span>
+                            <strong>{item.title}</strong>
+                            <small>{item.channelTitle}</small>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              ) : null}
+            </aside>
+          ) : null}
 
-        <section
-          className={`workspace-main${detailMatch ? " stream-workspace-host" : ""}`}
-          aria-label="メインコンテンツ"
-        >
-          {reservationPath ? (
-            <ReservationsPage path={path} onNavigate={navigate} />
-          ) : detailMatch ? (
-            selectedStreamForPath ? (
-              <StreamDetail
-                stream={selectedStreamForPath}
-                isChatPanelOpen={isRightPanelOpen}
-                onBack={() => navigate("/streams")}
-              />
-            ) : notFound ? (
-              <NotFound />
-            ) : (
-              <p className="loading-state" role="status">
-                ストリームを読み込んでいます…
+          <section className="workspace-main" aria-label="メインコンテンツ">
+            <section className="hero compact-hero">
+              <p className="eyebrow">YouTube ストリームワークスペース</p>
+              <h1>動画とチャットを、ひとつの場所で。</h1>
+              <p className="lede">
+                気になる配信をプレビューして保存し、動画の再生位置とチャットを同期しながら探索できます。
               </p>
-            )
-          ) : (
-            <>
-              <section className="hero compact-hero">
-                <p className="eyebrow">YouTube ストリームワークスペース</p>
-                <h1>動画とチャットを、ひとつの場所で。</h1>
-                <p className="lede">
-                  気になる配信をプレビューして保存し、動画の再生位置とチャットを同期しながら探索できます。
+            </section>
+            {preview ? (
+              <PreviewCard
+                preview={preview}
+                isRegistering={isRegistering}
+                onRegister={handleRegister}
+              />
+            ) : (
+              <section
+                className="workspace-welcome"
+                aria-labelledby="welcome-title"
+              >
+                <span aria-hidden="true">▶</span>
+                <h2 id="welcome-title">動画を選択してください</h2>
+                <p>
+                  左のライブラリから開くか、右の操作パネルで YouTube URL
+                  をプレビューします。
                 </p>
               </section>
-              {preview ? (
-                <PreviewCard
-                  preview={preview}
-                  isRegistering={isRegistering}
-                  onRegister={handleRegister}
-                />
-              ) : (
-                <section
-                  className="workspace-welcome"
-                  aria-labelledby="welcome-title"
-                >
-                  <span aria-hidden="true">▶</span>
-                  <h2 id="welcome-title">動画を選択してください</h2>
-                  <p>
-                    左のライブラリから開くか、右の操作パネルで YouTube URL
-                    をプレビューします。
-                  </p>
-                </section>
-              )}
-            </>
-          )}
-        </section>
+            )}
+          </section>
 
-        {isRightPanelOpen && !detailMatch ? (
-          <aside
-            className="workspace-panel right-panel"
-            aria-label="操作パネル"
-          >
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">クイック操作</p>
-                <h2>
-                  {reservationPath
-                    ? "予約"
-                    : detailMatch
-                      ? "ストリーム情報"
-                      : "動画を追加"}
-                </h2>
+          {isRightPanelOpen ? (
+            <aside
+              className="workspace-panel right-panel"
+              aria-label="操作パネル"
+            >
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">クイック操作</p>
+                  <h2>動画を追加</h2>
+                </div>
               </div>
-            </div>
-            {!reservationPath ? (
               <form
                 className="registration-form panel-form"
                 onSubmit={handlePreview}
@@ -452,14 +412,10 @@ export function App() {
                   {isPreviewing ? "確認しています…" : "ストリームをプレビュー"}
                 </button>
               </form>
-            ) : (
-              <p className="panel-state">
-                配信前の YouTube URL を登録すると、自動収集を予約できます。
-              </p>
-            )}
-          </aside>
-        ) : null}
-      </main>
+            </aside>
+          ) : null}
+        </main>
+      )}
     </div>
   );
 }
@@ -534,11 +490,9 @@ function PreviewCard({
 
 function StreamDetail({
   stream,
-  isChatPanelOpen,
   onBack,
 }: {
   stream: Stream;
-  isChatPanelOpen: boolean;
   onBack: () => void;
 }) {
   const [playbackOffsetMilliseconds, setPlaybackOffsetMilliseconds] =
@@ -607,15 +561,13 @@ function StreamDetail({
           onTimeChange={setPlaybackOffsetMilliseconds}
         />
       </div>
-      {isChatPanelOpen ? (
-        <aside className="stream-chat-pane" aria-label="チャットと収集">
-          <CollectionWorkspace
-            streamId={stream.id}
-            playbackOffsetMilliseconds={playbackOffsetMilliseconds}
-            onSeek={seekTo}
-          />
-        </aside>
-      ) : null}
+      <aside className="stream-chat-pane" aria-label="チャットと収集">
+        <CollectionWorkspace
+          streamId={stream.id}
+          playbackOffsetMilliseconds={playbackOffsetMilliseconds}
+          onSeek={seekTo}
+        />
+      </aside>
     </article>
   );
 }
@@ -693,8 +645,8 @@ function CollectionWorkspace({
     setRequestError(null);
     try {
       setCollection(await action());
-    } catch (error) {
-      setRequestError(collectionErrorMessage(error));
+    } catch (submitError) {
+      setRequestError(collectionErrorMessage(submitError));
     } finally {
       setIsSubmitting(false);
     }
@@ -848,19 +800,19 @@ function ChatSearch({
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [results, setResults] = useState<ChatMessage[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   async function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextQuery = query.trim();
     setIsSearching(true);
-    setError(null);
+    setSearchError(null);
     try {
       const page = await searchChatMessages(streamId, nextQuery);
       setResults(page.items);
       setSubmittedQuery(nextQuery);
     } catch (requestError) {
-      setError(collectionErrorMessage(requestError));
+      setSearchError(collectionErrorMessage(requestError));
     } finally {
       setIsSearching(false);
     }
@@ -898,9 +850,9 @@ function ChatSearch({
         </div>
       </form>
 
-      {error ? (
+      {searchError ? (
         <p className="inline-error" role="alert">
-          {error}
+          {searchError}
         </p>
       ) : null}
       {submittedQuery ? (
@@ -958,7 +910,7 @@ function ChatMessageList({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [nextCursor, setNextCursor] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [chatError, setChatError] = useState<string | null>(null);
 
   const loadPage = useCallback(
     async (cursor?: string) => {
@@ -969,7 +921,7 @@ function ChatMessageList({
         );
         setNextCursor(page.nextCursor);
       } catch (requestError) {
-        setError(collectionErrorMessage(requestError));
+        setChatError(collectionErrorMessage(requestError));
       } finally {
         setIsLoading(false);
       }
@@ -986,7 +938,7 @@ function ChatMessageList({
         setNextCursor(page.nextCursor);
       })
       .catch((requestError: unknown) => {
-        if (!cancelled) setError(collectionErrorMessage(requestError));
+        if (!cancelled) setChatError(collectionErrorMessage(requestError));
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -1013,9 +965,9 @@ function ChatMessageList({
         <h3 id="chat-title">収集済みチャット</h3>
         {messages.length > 0 ? <span>{messages.length}件表示</span> : null}
       </div>
-      {error ? (
+      {chatError ? (
         <p className="inline-error" role="alert">
-          {error}
+          {chatError}
         </p>
       ) : null}
       {messages.length === 0 && isLoading ? (
@@ -1058,7 +1010,7 @@ function ChatMessageList({
           disabled={isLoading}
           onClick={() => {
             setIsLoading(true);
-            setError(null);
+            setChatError(null);
             void loadPage(nextCursor);
           }}
         >
