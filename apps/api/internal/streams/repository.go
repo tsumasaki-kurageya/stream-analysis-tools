@@ -37,6 +37,9 @@ type Repository interface {
 	Get(context.Context, uuid.UUID) (Stream, error)
 	GetByYouTubeVideoID(context.Context, string) (Stream, error)
 	List(context.Context, ListOptions) ([]Stream, error)
+}
+
+type ListItemRepository interface {
 	ListItems(context.Context, ListOptions) ([]ListItem, error)
 }
 
@@ -45,6 +48,7 @@ type PostgresRepository struct {
 }
 
 var _ Repository = (*PostgresRepository)(nil)
+var _ ListItemRepository = (*PostgresRepository)(nil)
 
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
