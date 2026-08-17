@@ -1,39 +1,74 @@
 import { expect, test, type Page } from "@playwright/test";
 
 const reservationId = "f47ac10b-58cc-4372-a567-0e02b2c3d479";
+const historyReservationId = "9d1a7f61-a56d-4a9c-9a0d-6c940b35c013";
 const streamId = "c56a4180-65aa-42ec-a945-5fd21dec0538";
 const sourceUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
-test("creates and cancels a supported reservation", async ({ page }) => {
+test("SCR-003: keeps creation secondary and separates active from history", async ({
+  page,
+}) => {
+  await installReservationListApi(page);
+  await page.goto("/reservations");
+
+  await expect(page.getByRole("textbox", { name: "YouTube URL" })).toHaveCount(
+    0,
+  );
+
+  const active = page.getByRole("region", { name: "進行中" });
+  const history = page.getByRole("region", { name: "履歴" });
+  await expect(active).toContainText("dQw4w9WgXcQ");
+  await expect(active).toContainText("配信待ち");
+  await expect(active).toContainText("2026/08/15");
+  await expect(history).toContainText("history001x");
+  await expect(history).toContainText("完了");
+
+  await page.getByRole("button", { name: "収集を予約" }).click();
+  await expect(
+    page.getByRole("textbox", { name: "YouTube URL" }),
+  ).toBeVisible();
+});
+
+test("FLW-006: creates and cancels a supported reservation", async ({
+  page,
+}) => {
   await installReservationApi(page, "cancel");
   await page.goto("/reservations");
 
-  await page.getByRole("textbox", { name: "YouTube URL" }).fill(sourceUrl);
   await page.getByRole("button", { name: "収集を予約" }).click();
+  await page.getByRole("textbox", { name: "YouTube URL" }).fill(sourceUrl);
+  await page
+    .getByRole("region", { name: "新しい収集予約" })
+    .getByRole("button", { name: "収集を予約" })
+    .click();
   await expect(page).toHaveURL(`/reservations/${reservationId}`);
-  await expect(page.getByRole("heading", { name: "配信待ち" })).toBeVisible();
+  await expect(page.getByText("配信待ち", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "予約をキャンセル" }).click();
-  await expect(
-    page.getByRole("heading", { name: "キャンセル済み" }),
-  ).toBeVisible();
+  await expect(page.getByText("キャンセル済み", { exact: true })).toBeVisible();
+  await expect(page.getByText("次回確認")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "予約をキャンセル" }),
   ).toHaveCount(0);
 });
 
-test("follows automatic collection through completion to stream detail", async ({
+test("FLW-008: follows automatic collection through completion to workspace", async ({
   page,
 }) => {
   await installReservationApi(page, "complete");
   await page.goto("/reservations");
 
-  await page.getByRole("textbox", { name: "YouTube URL" }).fill(sourceUrl);
   await page.getByRole("button", { name: "収集を予約" }).click();
-  await expect(page.getByRole("heading", { name: "収集中" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "完了" })).toBeVisible({
+  await page.getByRole("textbox", { name: "YouTube URL" }).fill(sourceUrl);
+  await page
+    .getByRole("region", { name: "新しい収集予約" })
+    .getByRole("button", { name: "収集を予約" })
+    .click();
+  await expect(page.getByText("収集中", { exact: true })).toBeVisible();
+  await expect(page.getByText("完了", { exact: true })).toBeVisible({
     timeout: 7_000,
   });
+  await expect(page.getByText("次回確認")).toHaveCount(0);
 
   await page.getByRole("link", { name: "収集済みストリームを開く" }).click();
   await expect(page).toHaveURL(`/streams/${streamId}`);
@@ -41,6 +76,36 @@ test("follows automatic collection through completion to stream detail", async (
     page.getByRole("heading", { name: "Reserved broadcast" }),
   ).toBeVisible();
 });
+
+async function installReservationListApi(page: Page) {
+  await page.route("**/v1/**", async (route) => {
+    const request = route.request();
+    const { pathname } = new URL(request.url());
+    if (request.method() === "GET" && pathname === "/v1/reservations") {
+      await route.fulfill({
+        json: {
+          items: [
+            {
+              ...reservation("scheduled", true),
+              scheduledStartAt: "2026-08-15T12:00:00Z",
+            },
+            {
+              ...reservation("completed", false),
+              id: historyReservationId,
+              youtubeVideoId: "history001x",
+              scheduledStartAt: "2026-08-14T12:00:00Z",
+            },
+          ],
+          total: 2,
+          limit: 20,
+          offset: 0,
+        },
+      });
+      return;
+    }
+    await route.abort("failed");
+  });
+}
 
 async function installReservationApi(
   page: Page,
@@ -135,6 +200,7 @@ function reservation(
     youtubeVideoId: "dQw4w9WgXcQ",
     sourceUrl,
     state,
+    scheduledStartAt: "2026-08-15T12:00:00Z",
     nextCheckAt: "2026-08-15T12:05:00Z",
     monitorAttempt: 2,
     canCancel,

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { App } from "./App";
 import type { Reservation } from "./api/client";
@@ -8,11 +8,20 @@ const reservation = {
   youtubeVideoId: "dQw4w9WgXcQ",
   sourceUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   state: "scheduled",
-  nextCheckAt: "2026-08-15T12:00:00Z",
+  scheduledStartAt: "2026-08-15T12:00:00Z",
+  nextCheckAt: "2026-08-15T12:05:00Z",
   monitorAttempt: 0,
   canCancel: true,
   createdAt: "2026-08-15T12:00:00Z",
   updatedAt: "2026-08-15T12:00:00Z",
+} as const;
+
+const history = {
+  ...reservation,
+  id: "9d1a7f61-a56d-4a9c-9a0d-6c940b35c013",
+  youtubeVideoId: "history001x",
+  state: "completed",
+  canCancel: false,
 } as const;
 
 afterEach(() => {
@@ -20,8 +29,33 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
+it("keeps creation collapsed and separates active from history", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () =>
+      jsonResponse({
+        items: [reservation, history],
+        total: 2,
+        limit: 20,
+        offset: 0,
+      }),
+    ),
+  );
+  window.history.replaceState(null, "", "/reservations");
+  render(<App />);
+
+  const activeRegion = await screen.findByRole("region", { name: "進行中" });
+  const historyRegion = screen.getByRole("region", { name: "履歴" });
+  expect(within(activeRegion).getByText("dQw4w9WgXcQ")).toBeDefined();
+  expect(within(historyRegion).getByText("history001x")).toBeDefined();
+  expect(screen.queryByRole("textbox", { name: "YouTube URL" })).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "収集を予約" }));
+  expect(screen.getByRole("textbox", { name: "YouTube URL" })).toBeDefined();
+});
+
 it("creates and cancels a reservation through its detail", async () => {
-  let current: Reservation = reservation;
+  let current: Reservation = { ...reservation };
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -48,20 +82,25 @@ it("creates and cancels a reservation through its detail", async () => {
   window.history.replaceState(null, "", "/reservations");
   render(<App />);
 
-  fireEvent.change(
-    await screen.findByRole("textbox", { name: "YouTube URL" }),
-    { target: { value: reservation.sourceUrl } },
+  fireEvent.click(await screen.findByRole("button", { name: "収集を予約" }));
+  fireEvent.change(screen.getByRole("textbox", { name: "YouTube URL" }), {
+    target: { value: reservation.sourceUrl },
+  });
+  fireEvent.click(
+    within(screen.getByRole("region", { name: "新しい収集予約" })).getByRole(
+      "button",
+      { name: "収集を予約" },
+    ),
   );
-  fireEvent.click(screen.getByRole("button", { name: "収集を予約" }));
-  expect(
-    await screen.findByRole("heading", { name: "配信待ち" }),
-  ).toBeDefined();
+
+  expect(await screen.findByText("配信待ち", { exact: true })).toBeDefined();
   expect(screen.getByText(/配信予定時刻が近づくまで待機/)).toBeDefined();
 
   fireEvent.click(screen.getByRole("button", { name: "予約をキャンセル" }));
   expect(
-    await screen.findByRole("heading", { name: "キャンセル済み" }),
+    await screen.findByText("キャンセル済み", { exact: true }),
   ).toBeDefined();
+  expect(screen.queryByText("次回確認")).toBeNull();
   expect(screen.queryByRole("button", { name: "予約をキャンセル" })).toBeNull();
 });
 
@@ -92,6 +131,7 @@ it("separates monitoring and collection failures", async () => {
     await screen.findByRole("heading", { name: "監視エラー" }),
   ).toBeDefined();
   expect(screen.getByRole("heading", { name: "収集エラー" })).toBeDefined();
+  expect(screen.queryByText("次回確認")).toBeNull();
 });
 
 function jsonResponse(body: unknown, status = 200): Response {

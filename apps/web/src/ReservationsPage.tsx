@@ -36,104 +36,195 @@ function ReservationIndex({
   onNavigate: (path: string) => void;
 }) {
   const [items, setItems] = useState<Reservation[]>();
+  const [createExpanded, setCreateExpanded] = useState(false);
   const [url, setURL] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string>();
+  const [listError, setListError] = useState<string>();
+  const [createError, setCreateError] = useState<string>();
 
   useEffect(() => {
     void listReservations()
-      .then((page) => setItems(page.items))
-      .catch((requestError: unknown) => setError(errorMessage(requestError)));
+      .then((page) => {
+        setItems(page.items);
+        setListError(undefined);
+      })
+      .catch((requestError: unknown) =>
+        setListError(errorMessage(requestError)),
+      );
   }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
-    setError(undefined);
+    setCreateError(undefined);
     try {
       const reservation = await createReservation(url);
       onNavigate(`/reservations/${reservation.id}`);
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      setCreateError(errorMessage(requestError));
     } finally {
       setSubmitting(false);
     }
   }
 
+  const active = items?.filter((item) => !TERMINAL_STATES.has(item.state));
+  const history = items?.filter((item) => TERMINAL_STATES.has(item.state));
+
   return (
-    <>
-      <section className="hero reservation-hero">
-        <p className="eyebrow">自動収集</p>
-        <h1>配信終了前に、収集を予約。</h1>
-        <p className="lede">
-          配信状態を自動で確認し、アーカイブの準備ができたらチャットリプレイを収集します。
-        </p>
-        <form className="registration-form" onSubmit={submit}>
-          <label htmlFor="reservation-url">YouTube URL</label>
-          <div className="input-row">
-            <input
-              id="reservation-url"
-              type="url"
-              required
-              value={url}
-              placeholder="https://youtube.com/watch?v=…"
-              onChange={(event) => setURL(event.target.value)}
-            />
-            <button disabled={submitting} type="submit">
-              {submitting ? "予約しています…" : "収集を予約"}
-            </button>
-          </div>
-        </form>
-      </section>
-      {error ? (
-        <p className="inline-error" role="alert">
-          {error}
-        </p>
-      ) : null}
-      <section className="library" aria-labelledby="reservations-heading">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">監視キュー</p>
-            <h2 id="reservations-heading">予約一覧</h2>
-          </div>
-          <span className="count">全{items?.length ?? 0}件</span>
+    <section className="reservation-index" aria-labelledby="reservations-title">
+      <div className="page-heading-row">
+        <div>
+          <h1 id="reservations-title">予約一覧</h1>
+          {items ? <span className="count">全{items.length}件</span> : null}
         </div>
-        {items === undefined ? (
-          <p className="loading-state" role="status">
-            予約を読み込んでいます…
-          </p>
-        ) : items.length === 0 ? (
-          <div className="empty-state">
-            <p>予約はまだありません。</p>
-            <span>
-              配信予定またはライブ配信中の YouTube URL を追加してください。
-            </span>
-          </div>
-        ) : (
-          <div className="reservation-list">
-            {items.map((reservation) => (
-              <a
-                className="reservation-row"
-                href={`/reservations/${reservation.id}`}
-                key={reservation.id}
-                onClick={(event) => {
-                  event.preventDefault();
-                  onNavigate(`/reservations/${reservation.id}`);
-                }}
-              >
-                <span
-                  className={`status reservation-status-${reservation.state}`}
-                >
-                  {stateLabel(reservation.state)}
-                </span>
-                <strong>{reservation.youtubeVideoId}</strong>
-                <span>{nextAction(reservation)}</span>
-              </a>
-            ))}
-          </div>
-        )}
-      </section>
-    </>
+        <button
+          type="button"
+          className="secondary-button"
+          aria-expanded={createExpanded}
+          aria-controls="reservation-create-panel"
+          onClick={() => {
+            setCreateExpanded((expanded) => !expanded);
+            setCreateError(undefined);
+          }}
+        >
+          {createExpanded ? "予約作成を閉じる" : "収集を予約"}
+        </button>
+      </div>
+
+      {createExpanded ? (
+        <section
+          id="reservation-create-panel"
+          className="reservation-create-panel"
+          aria-labelledby="reservation-create-title"
+        >
+          <h2 id="reservation-create-title">新しい収集予約</h2>
+          <form
+            className="registration-form reservation-form"
+            onSubmit={submit}
+          >
+            <label htmlFor="reservation-url">YouTube URL</label>
+            <div className="input-row">
+              <input
+                id="reservation-url"
+                type="url"
+                required
+                value={url}
+                placeholder="https://youtube.com/watch?v=…"
+                onChange={(event) => setURL(event.target.value)}
+              />
+              <button disabled={submitting} type="submit">
+                {submitting ? "予約しています…" : "収集を予約"}
+              </button>
+            </div>
+          </form>
+          {createError ? (
+            <p className="inline-error" role="alert">
+              {createError}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
+      {listError ? (
+        <p className="inline-error" role="alert">
+          {listError}
+        </p>
+      ) : items === undefined ? (
+        <p className="loading-state" role="status">
+          予約を読み込んでいます…
+        </p>
+      ) : (
+        <div className="reservation-groups">
+          <ReservationGroup
+            title="進行中"
+            items={active ?? []}
+            emptyMessage="進行中の予約はありません。"
+            onNavigate={onNavigate}
+          />
+          <ReservationGroup
+            title="履歴"
+            items={history ?? []}
+            emptyMessage="履歴はありません。"
+            onNavigate={onNavigate}
+            subdued
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ReservationGroup({
+  title,
+  items,
+  emptyMessage,
+  onNavigate,
+  subdued = false,
+}: {
+  title: string;
+  items: Reservation[];
+  emptyMessage: string;
+  onNavigate: (path: string) => void;
+  subdued?: boolean;
+}) {
+  return (
+    <section
+      className={`reservation-group${subdued ? " reservation-group-history" : ""}`}
+      aria-labelledby={`reservation-group-${title}`}
+    >
+      <div className="section-heading compact-section-heading">
+        <h2 id={`reservation-group-${title}`}>{title}</h2>
+        <span className="count">{items.length}件</span>
+      </div>
+      {items.length === 0 ? (
+        <p className="empty-state compact-empty-state">{emptyMessage}</p>
+      ) : (
+        <div className="reservation-table-wrap">
+          <table className="reservation-table">
+            <thead>
+              <tr>
+                <th scope="col">配信</th>
+                <th scope="col">配信予定日時</th>
+                <th scope="col">状態</th>
+                <th scope="col">次回確認</th>
+                <th scope="col">エラー</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((reservation) => (
+                <tr key={reservation.id}>
+                  <td>
+                    <a
+                      href={`/reservations/${reservation.id}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        onNavigate(`/reservations/${reservation.id}`);
+                      }}
+                    >
+                      {reservation.youtubeVideoId}
+                    </a>
+                  </td>
+                  <td>{formatDateTime(reservation.scheduledStartAt)}</td>
+                  <td>
+                    <span
+                      className={`status reservation-status-${reservation.state}`}
+                    >
+                      {stateLabel(reservation.state)}
+                    </span>
+                  </td>
+                  <td>
+                    {TERMINAL_STATES.has(reservation.state)
+                      ? "—"
+                      : formatDateTime(reservation.nextCheckAt)}
+                  </td>
+                  <td>{hasReservationError(reservation) ? "あり" : "なし"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -170,6 +261,7 @@ function ReservationDetail({
       canceled = true;
     };
   }, [id]);
+
   useEffect(() => {
     if (!reservation || TERMINAL_STATES.has(reservation.state)) return;
     const timer = window.setTimeout(() => void load(), POLL_INTERVAL_MS);
@@ -188,18 +280,22 @@ function ReservationDetail({
     }
   }
 
-  if (!reservation && !error)
+  if (!reservation && !error) {
     return (
       <p className="loading-state" role="status">
         予約を読み込んでいます…
       </p>
     );
-  if (!reservation)
+  }
+  if (!reservation) {
     return (
       <p className="inline-error" role="alert">
         {error}
       </p>
     );
+  }
+
+  const terminal = TERMINAL_STATES.has(reservation.state);
 
   return (
     <article className="reservation-detail">
@@ -213,35 +309,40 @@ function ReservationDetail({
       >
         ← 予約一覧に戻る
       </a>
+
       {error ? (
         <p className="inline-error" role="alert">
           {error}
         </p>
       ) : null}
-      <div className="reservation-detail-heading">
+
+      <header className="reservation-detail-heading">
         <div>
-          <p className="eyebrow">予約 {reservation.youtubeVideoId}</p>
-          <h1>{stateLabel(reservation.state)}</h1>
-          <p className="lede">{nextAction(reservation)}</p>
+          <h1>{reservation.youtubeVideoId}</h1>
+          <p>{nextAction(reservation)}</p>
         </div>
         <span className={`status reservation-status-${reservation.state}`}>
           {stateLabel(reservation.state)}
         </span>
-      </div>
+      </header>
+
       <dl className="metadata-grid reservation-metadata">
-        <div>
-          <dt>次回確認</dt>
-          <dd>{formatDateTime(reservation.nextCheckAt)}</dd>
-        </div>
-        <div>
-          <dt>監視試行回数</dt>
-          <dd>{reservation.monitorAttempt}</dd>
-        </div>
         <div>
           <dt>配信予定時刻</dt>
           <dd>{formatDateTime(reservation.scheduledStartAt)}</dd>
         </div>
+        {!terminal ? (
+          <div>
+            <dt>次回確認</dt>
+            <dd>{formatDateTime(reservation.nextCheckAt)}</dd>
+          </div>
+        ) : null}
+        <div>
+          <dt>監視試行回数</dt>
+          <dd>{reservation.monitorAttempt}</dd>
+        </div>
       </dl>
+
       {reservation.lastErrorMessage ? (
         <section
           className="reservation-issue"
@@ -256,6 +357,7 @@ function ReservationDetail({
           </span>
         </section>
       ) : null}
+
       {reservation.collectionError ? (
         <section
           className="reservation-issue"
@@ -270,6 +372,7 @@ function ReservationDetail({
           </span>
         </section>
       ) : null}
+
       <div className="reservation-actions">
         <a href={reservation.sourceUrl} target="_blank" rel="noreferrer">
           YouTube で開く
@@ -300,6 +403,14 @@ function ReservationDetail({
   );
 }
 
+function hasReservationError(reservation: Reservation) {
+  return Boolean(
+    reservation.lastErrorCode ||
+    reservation.lastErrorMessage ||
+    reservation.collectionError,
+  );
+}
+
 function stateLabel(state: Reservation["state"]): string {
   return {
     scheduled: "配信待ち",
@@ -321,9 +432,9 @@ function nextAction(reservation: Reservation): string {
     waiting_for_archive:
       "YouTube がアーカイブとチャットリプレイを準備するのを待っています。",
     collecting: "アーカイブされたチャットリプレイを収集・保存しています。",
-    completed: "収集が完了しました。ストリームを開いてチャットを確認できます。",
-    failed: "監視を停止しました。下の監視エラーを確認してください。",
-    canceled: "予約はキャンセルされました。以降の処理は実行されません。",
+    completed: "収集が完了しました。",
+    failed: "監視を停止しました。エラー内容を確認してください。",
+    canceled: "予約はキャンセルされました。",
   }[reservation.state];
 }
 
