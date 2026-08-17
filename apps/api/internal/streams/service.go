@@ -47,6 +47,10 @@ func (service *Service) List(ctx context.Context, options ListOptions) ([]Stream
 	return service.repository.List(ctx, options)
 }
 
+func (service *Service) ListItems(ctx context.Context, options ListOptions) ([]ListItem, error) {
+	return service.repository.ListItems(ctx, options)
+}
+
 func (service *Service) Get(ctx context.Context, id uuid.UUID) (Stream, error) {
 	return service.repository.Get(ctx, id)
 }
