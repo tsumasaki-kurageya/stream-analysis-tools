@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 import "./stream-list.css";
+import "./reservations.css";
 import { App } from "./App";
 
 const root = document.getElementById("root");
