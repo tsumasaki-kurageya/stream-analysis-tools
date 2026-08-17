@@ -41,6 +41,12 @@ type Stream struct {
 	UpdatedAt         time.Time
 }
 
+type ListItem struct {
+	Stream
+	CollectionStatus *string
+	ChatMessageCount int64
+}
+
 type Metadata struct {
 	YouTubeVideoID    string
 	CanonicalURL      string
