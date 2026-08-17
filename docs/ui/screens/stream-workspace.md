@@ -1,4 +1,4 @@
-# SCR-002 配信ワークスペース UI仕様
+# SCR-002 配信ワークスペース / Timeline UI仕様
 
 この文書は、配信の収集・確認・分析を行う配信ワークスペースの UI 仕様の正本である。
 
@@ -6,9 +6,15 @@
 
 ## 1. Purpose
 
-配信ワークスペースの主目的は、**1つの配信を時間軸に沿って確認・分析するための起点を提供すること**である。
+配信ワークスペースの主目的は、**1つの配信を時間軸に沿って確認・分析すること**である。
 
-単なる配信詳細画面ではなく、動画再生、チャット量の把握、チャット内容の確認、収集状態の確認、および将来の分析ビューへの入口を統合する Workspace として扱う。
+本 Workspace 自体を **Timeline view** として扱う。Timeline は別画面・別タブ・別 URL ではない。
+
+中心体験は、YouTube Player の再生時刻を基準として以下を同期させ、配信中の盛り上がりと文脈を探索することである。
+
+- Chat activity
+- Chat message list
+- Chat search result
 
 優先順位は次のとおり。
 
@@ -18,25 +24,30 @@
 4. 必要に応じてチャットを検索する
 5. 収集未完了・失敗時に収集処理を実行または再試行する
 6. 配信メタデータの詳細を必要時に確認する
-7. 将来の Timeline / Location / PC view へ移動する
 
-## 2. Entry
+## 2. URL / Entry
+
+canonical URL は以下とする。
+
+```text
+/streams/:streamId
+```
+
+Timeline 専用の `/streams/:streamId/timeline` は作成しない。
 
 主な Entry は以下とする。
 
 - `SCR-001` 配信一覧から対象配信を選択する (`FLW-001`)
 - 配信登録完了後に登録対象の Workspace へ遷移する (`FLW-002`)
-- Workspace の URL への direct access / reload
-- 将来の Workspace 子ビューから Workspace 共通領域を維持して遷移する
+- 完了した予約から対応する配信を開く (`FLW-008`)
+- `/streams/:streamId` への direct access / reload
 
 ## 3. Workspace の基本構造
 
-Workspace は、共通領域と分析ビュー領域を分けて扱う。
-
-現時点の基本構造は以下とする。
+基本構造は以下とする。
 
 ```text
-Workspace
+Workspace / Timeline
 ├── Workspace header
 │   ├── Stream title
 │   ├── Channel
@@ -61,7 +72,7 @@ Workspace
 └── Chat message list
 ```
 
-将来の Timeline / Location / PC view は、同一ページへ無制限に縦積みせず、URL を持つ Workspace の子ビューとして扱う。詳細な URL と共通領域の境界は #44 で定義する。
+Player / Chat activity / Chat Search / Chat message list を、互いに独立した機能の縦積みとしてではなく、**1つの playback time を共有する Timeline 分析UI**として扱う。
 
 ## 4. Workspace header
 
@@ -92,8 +103,6 @@ Workspace header は、分析対象を識別するための最小限の情報に
 
 配信メタデータの詳細は専用画面へ遷移せず、**info icon 等の明示的な操作から Dialog として表示する**。
 
-### 表示候補
-
 最低限、取得可能な以下の情報を表示する。
 
 - タイトル
@@ -104,8 +113,6 @@ Workspace header は、分析対象を識別するための最小限の情報に
 - YouTube video ID
 - YouTube の canonical URL
 
-必要に応じて、ユーザー判断に有用な追加 metadata を表示してよい。
-
 ### 原則
 
 - Dialog は metadata 詳細確認のためにのみ使用する
@@ -115,21 +122,22 @@ Workspace header は、分析対象を識別するための最小限の情報に
 
 ## 6. YouTube Player
 
-YouTube Player は Workspace の共通要素として**常時表示する**。
+YouTube Player は Workspace / Timeline の**常時表示要素**とする。
 
-Player の現在再生位置は、Chat activity と Chat message list が共有する基準時刻とする。
+Player の現在再生位置は、Timeline 内の時刻連動 UI が共有する基準時刻とする。
 
 ### 必須動作
 
 - Player の再生位置を UI 側で継続的に把握できる
 - Chat activity の棒を選択した場合、その時間帯へ seek する
-- Chat message を時間指定で選択した場合、そのメッセージ時刻へ seek できる
+- Chat message を選択した場合、そのメッセージ時刻へ seek できる
+- Chat search result を選択した場合、そのメッセージ時刻へ seek できる
 - 埋め込み再生不可の場合でも、チャット分析データは利用可能な状態を維持する
 - 埋め込み不可時は YouTube で開く代替導線を提供する
 
 ## 7. Chat activity
 
-Chat activity は、配信中のチャット量の変化を時間軸で俯瞰するための共通分析領域とする。
+Chat activity は、配信中のチャット量の変化を時間軸で俯瞰する Timeline の主要分析領域とする。
 
 ### グラフ形式
 
@@ -183,7 +191,7 @@ Chat activity は、配信中のチャット量の変化を時間軸で俯瞰す
 
 ## 8. Chat message list
 
-Chat message list は Workspace の共通分析領域とし、Player の再生時間と同期する。
+Chat message list は Timeline の共通分析領域とし、Player の再生時間と同期する。
 
 ### 基本動作
 
@@ -215,7 +223,7 @@ Chat message list は Workspace の共通分析領域とし、Player の再生�
 
 ## 9. Chat search
 
-Chat Search は Chat message list と同じ Workspace 共通領域で利用できる。
+Chat Search は Chat message list と同じ Timeline 内で利用できる。
 
 ### 原則
 
@@ -261,7 +269,7 @@ Collection が成功し分析可能になった後は、Collection UI を Worksp
 
 ## 11. 時刻同期モデル
 
-Workspace では **現在再生位置を1つの共通状態として扱う**。
+Workspace / Timeline では **現在再生位置を1つの共通状態として扱う**。
 
 以下は同じ playback time を参照する。
 
@@ -282,26 +290,26 @@ Workspace では **現在再生位置を1つの共通状態として扱う**。
 
 どの入力元から変更されても、他の時刻連動 UI は同じ新しい再生位置へ同期する。
 
-## 12. 将来の分析ビュー
+## 12. 分析ビュー方針
 
-Timeline / Location / PC view は、Workspace にすべて縦積みしない。
+MVP では、本 Workspace 自体を Timeline view とする。
 
-**URL を持つ Workspace 子ビュー**として設計する。
+- Timeline を別の子ビューとして作らない
+- Timeline 切替用の tab / view selector を追加しない
+- `/streams/:streamId` を canonical URL とする
+- `/streams/:streamId/timeline` へ redirect しない
 
-候補 URL は #44 で確定する。
+当初候補としていた Location view / PC view は、要求・用途を特定できないため本仕様から除外する。
 
-```text
-/streams/:streamId/timeline
-/streams/:streamId/locations
-/streams/:streamId/pcs
-```
+将来、新しい分析ビューの必要性が明確になった場合は、少なくとも以下を決定してから仕様へ追加する。
 
-#42 では以下のみを確定する。
+- そのビューの Purpose
+- ユーザーが行う主要操作
+- Timeline との責務差
+- 独立 URL が必要か
+- Workspace 共通要素との関係
 
-- Workspace は分析の共通コンテキストを保持する
-- 将来分析ビューは独立した URL を持つ
-- 子ビュー切替のために Workspace 全体を再設計しなくて済む構造にする
-- Player / Chat activity / Chat message list のどこまでを各子ビューでも共通表示するかは #44 で決定する
+将来拡張の可能性だけを理由に、空のタブ・未使用ルート・プレースホルダー画面を先に追加しない。
 
 ## 13. Visible elements
 
@@ -340,7 +348,8 @@ Timeline / Location / PC view は、Workspace にすべて縦積みしない。
 - 分析機能の長い説明文
 - Marketing copy
 - decorative eyebrow text
-- Timeline / Location / PC view の縦積み
+- Timeline 切替だけを目的とした tab / view selector
+- Location / PC 等、要求のない分析ビュー
 - 仕様にない Modal / Card / Help panel
 
 また、Player / graph / message list を互いに独立した時刻状態として実装しない。
@@ -411,8 +420,10 @@ Player、Chat activity、Chat Search、Chat message list が利用可能な通�
 
 ## 17. Acceptance Criteria
 
-- [ ] Workspace の主目的が配信分析の起点として表現されている
-- [ ] YouTube Player が Workspace 共通要素として常時表示される
+- [ ] Workspace 自体が Timeline view として扱われている
+- [ ] canonical URL が `/streams/:streamId` である
+- [ ] `/streams/:streamId/timeline` を別ルートとして要求していない
+- [ ] YouTube Player が Workspace / Timeline の常時表示要素である
 - [ ] Metadata 詳細が info action から Dialog で確認できる
 - [ ] Metadata の詳細が分析領域を常時圧迫しない
 - [ ] Collection 未完了・処理中・失敗時は必要な状態・操作が目立つ
@@ -428,17 +439,14 @@ Player、Chat activity、Chat Search、Chat message list が利用可能な通�
 - [ ] Chat message 選択で対応時間へ Player を seek できる
 - [ ] Chat search result 選択で Player / graph / list が同じ時刻へ同期する
 - [ ] Player 埋め込み不可でも Chat 分析を継続できる
-- [ ] Timeline / Location / PC view を同一画面へ縦積みしない
-- [ ] 将来分析ビューは URL を持つ Workspace 子ビューとして拡張できる
+- [ ] Location / PC view を要求していない
 - [ ] 仕様にない説明文・大型 Hero・常時 metadata 詳細を追加していない
 
 ## 18. Out of scope
 
 - 現行 Workspace の実装修正
 - Chat activity API / aggregation endpoint の実装
-- Timeline / Location / PC view 自体の実装
-- Timeline / Location / PC view の具体的 URL 確定
-- 子ビューごとの Player / Chat 共通表示範囲の確定
+- 新しい分析ビューの追加
 - グラフの色・線幅・Animation 等のビジュアルデザイン詳細
 
-これらは #44、#46、および後続の実装 Issue で扱う。
+新しい分析ビューが必要になった場合は、別途プロダクト要求として定義する。
