@@ -37,6 +37,7 @@ type Repository interface {
 	Get(context.Context, uuid.UUID) (Stream, error)
 	GetByYouTubeVideoID(context.Context, string) (Stream, error)
 	List(context.Context, ListOptions) ([]Stream, error)
+	ListItems(context.Context, ListOptions) ([]ListItem, error)
 }
 
 type PostgresRepository struct {
@@ -154,11 +155,8 @@ func (repository *PostgresRepository) List(
 	ctx context.Context,
 	options ListOptions,
 ) ([]Stream, error) {
-	if options.Limit < 1 || options.Limit > 100 {
-		return nil, fmt.Errorf("%w: list limit must be between 1 and 100", ErrInvalidStream)
-	}
-	if options.Offset < 0 {
-		return nil, fmt.Errorf("%w: list offset must not be negative", ErrInvalidStream)
+	if err := validateListOptions(options); err != nil {
+		return nil, err
 	}
 
 	rows, err := repository.pool.Query(ctx, `
@@ -184,6 +182,51 @@ func (repository *PostgresRepository) List(
 		return nil, fmt.Errorf("iterate streams: %w", err)
 	}
 	return streams, nil
+}
+
+func (repository *PostgresRepository) ListItems(
+	ctx context.Context,
+	options ListOptions,
+) ([]ListItem, error) {
+	if err := validateListOptions(options); err != nil {
+		return nil, err
+	}
+
+	rows, err := repository.pool.Query(ctx, `
+		SELECT `+streamColumns+`,
+			(
+				SELECT status
+				FROM collection.collection_jobs
+				WHERE collection.collection_jobs.stream_id = stream.streams.id
+				ORDER BY requested_at DESC, id DESC
+				LIMIT 1
+			) AS collection_status,
+			(
+				SELECT COUNT(*)
+				FROM chat.chat_messages
+				WHERE chat.chat_messages.stream_id = stream.streams.id
+			) AS chat_message_count
+		FROM stream.streams
+		ORDER BY created_at DESC, id DESC
+		LIMIT $1 OFFSET $2
+	`, options.Limit, options.Offset)
+	if err != nil {
+		return nil, fmt.Errorf("list stream read models: %w", err)
+	}
+	defer rows.Close()
+
+	items := make([]ListItem, 0, options.Limit)
+	for rows.Next() {
+		item, err := scanListItem(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan stream list item: %w", err)
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate stream list items: %w", err)
+	}
+	return items, nil
 }
 
 type rowScanner interface {
@@ -222,13 +265,91 @@ func scanStream(row rowScanner) (Stream, error) {
 		return Stream{}, err
 	}
 
+	applyNullableStreamFields(
+		&stream,
+		thumbnailURL,
+		scheduledStart,
+		actualStart,
+		actualEnd,
+		duration,
+		status,
+	)
+	return stream, nil
+}
+
+func scanListItem(row rowScanner) (ListItem, error) {
+	var (
+		item             ListItem
+		thumbnailURL     pgtype.Text
+		scheduledStart   pgtype.Timestamptz
+		actualStart      pgtype.Timestamptz
+		actualEnd        pgtype.Timestamptz
+		duration         pgtype.Int8
+		lifecycleStatus  string
+		collectionStatus pgtype.Text
+	)
+
+	err := row.Scan(
+		&item.ID,
+		&item.YouTubeVideoID,
+		&item.CanonicalURL,
+		&item.Title,
+		&item.ChannelID,
+		&item.ChannelTitle,
+		&thumbnailURL,
+		&scheduledStart,
+		&actualStart,
+		&actualEnd,
+		&duration,
+		&lifecycleStatus,
+		&item.MetadataFetchedAt,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+		&collectionStatus,
+		&item.ChatMessageCount,
+	)
+	if err != nil {
+		return ListItem{}, err
+	}
+
+	applyNullableStreamFields(
+		&item.Stream,
+		thumbnailURL,
+		scheduledStart,
+		actualStart,
+		actualEnd,
+		duration,
+		lifecycleStatus,
+	)
+	item.CollectionStatus = textPointer(collectionStatus)
+	return item, nil
+}
+
+func applyNullableStreamFields(
+	stream *Stream,
+	thumbnailURL pgtype.Text,
+	scheduledStart pgtype.Timestamptz,
+	actualStart pgtype.Timestamptz,
+	actualEnd pgtype.Timestamptz,
+	duration pgtype.Int8,
+	status string,
+) {
 	stream.ThumbnailURL = textPointer(thumbnailURL)
 	stream.ScheduledStartAt = timePointer(scheduledStart)
 	stream.ActualStartAt = timePointer(actualStart)
 	stream.ActualEndAt = timePointer(actualEnd)
 	stream.Duration = durationPointer(duration)
 	stream.LifecycleStatus = LifecycleStatus(status)
-	return stream, nil
+}
+
+func validateListOptions(options ListOptions) error {
+	if options.Limit < 1 || options.Limit > 100 {
+		return fmt.Errorf("%w: list limit must be between 1 and 100", ErrInvalidStream)
+	}
+	if options.Offset < 0 {
+		return fmt.Errorf("%w: list offset must not be negative", ErrInvalidStream)
+	}
+	return nil
 }
 
 func normalizeMetadata(metadata Metadata) (Metadata, error) {
