@@ -48,7 +48,19 @@ func (service *Service) List(ctx context.Context, options ListOptions) ([]Stream
 }
 
 func (service *Service) ListItems(ctx context.Context, options ListOptions) ([]ListItem, error) {
-	return service.repository.ListItems(ctx, options)
+	if repository, ok := service.repository.(ListItemRepository); ok {
+		return repository.ListItems(ctx, options)
+	}
+
+	listed, err := service.repository.List(ctx, options)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]ListItem, len(listed))
+	for index, stream := range listed {
+		items[index] = ListItem{Stream: stream}
+	}
+	return items, nil
 }
 
 func (service *Service) Get(ctx context.Context, id uuid.UUID) (Stream, error) {
