@@ -1,0 +1,34 @@
+name: Rebuild stacked PR
+
+on:
+  pull_request:
+    types: [synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    if: github.event.pull_request.number == 65 || github.event.pull_request.number == 67 || github.event.pull_request.number == 68
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Rebuild head on latest main
+        run: |
+          set -euxo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "Head already contains latest main"
+            exit 0
+          fi
+          BASE=$(git merge-base origin/main HEAD)
+          git diff --binary "$BASE"..HEAD -- . ':(exclude).github/workflows/sync-main-for-merge.yml' > /tmp/pr.patch
+          git reset --hard origin/main
+          git apply --index --3way /tmp/pr.patch
+          git commit -m "Rebuild PR #${{ github.event.pull_request.number }} on latest main"
+          git push --force-with-lease origin HEAD:${{ github.head_ref }}
