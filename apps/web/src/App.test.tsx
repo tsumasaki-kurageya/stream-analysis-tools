@@ -79,9 +79,7 @@ describe("route-owned app shell", () => {
     expect(
       screen.getByRole("complementary", { name: "チャットと収集" }),
     ).toBeDefined();
-    expect(
-      screen.queryByRole("button", { name: /右パネルを/ }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /右パネルを/ })).toBeNull();
     expect(
       screen.queryByRole("complementary", { name: "ストリームライブラリ" }),
     ).toBeNull();
@@ -97,9 +95,7 @@ describe("route-owned app shell", () => {
       await screen.findByRole("heading", { name: "予約一覧" }),
     ).toBeDefined();
     expect(screen.queryByRole("complementary")).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: /パネルを/ }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /パネルを/ })).toBeNull();
   });
 
   it("uses the shared header for Streams and Reservations navigation", async () => {
@@ -163,9 +159,7 @@ describe("primary stream flows", () => {
     expect(
       await screen.findByRole("link", { name: "ライブラリに戻る" }),
     ).toBeDefined();
-    expect(
-      screen.queryByRole("button", { name: /右パネルを/ }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /右パネルを/ })).toBeNull();
   });
 
   it("opens a saved stream from the list and returns to the list", async () => {
@@ -178,7 +172,9 @@ describe("primary stream flows", () => {
     expect(window.location.pathname).toBe(`/streams/${stream.id}`);
     fireEvent.click(screen.getByRole("link", { name: "ライブラリに戻る" }));
     expect(window.location.pathname).toBe("/streams");
-    expect(await screen.findByRole("link", { name: stream.title })).toBeDefined();
+    expect(
+      await screen.findByRole("link", { name: stream.title }),
+    ).toBeDefined();
   });
 });
 
@@ -201,7 +197,10 @@ function installFetch(options: {
           offset: 0,
         });
       }
-      if (url === "/v1/reservations?limit=20&offset=0" && options.reservations) {
+      if (
+        url === "/v1/reservations?limit=20&offset=0" &&
+        options.reservations
+      ) {
         return jsonResponse({ items: [], total: 0, limit: 20, offset: 0 });
       }
       if (url === "/v1/streams/preview" && options.preview) {
