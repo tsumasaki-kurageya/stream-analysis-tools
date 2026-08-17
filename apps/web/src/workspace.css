@@ -1,0 +1,137 @@
+.timeline-workspace {
+  display: grid;
+  gap: 1rem;
+  width: min(84rem, 100%);
+  margin: 0 auto;
+}
+
+.timeline-header {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.timeline-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1rem;
+}
+
+.timeline-heading h1 {
+  max-width: none;
+  margin: 0;
+  color: var(--navy);
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+
+.timeline-heading .channel {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+}
+
+.timeline-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.timeline-statuses .collection-status {
+  border-radius: 999px;
+  padding: 0.45rem 0.65rem;
+  background: #e9edf0;
+  color: #53626b;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.metadata-info-button {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+}
+
+.timeline-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(22rem, 0.85fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.timeline-content .stream-video-pane,
+.timeline-content .stream-chat-pane {
+  min-width: 0;
+}
+
+.collection-compact-status {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.metadata-dialog-backdrop {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(19 44 57 / 45%);
+}
+
+.metadata-dialog {
+  width: min(42rem, 100%);
+  max-height: min(80vh, 44rem);
+  overflow: auto;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.metadata-dialog:focus-visible,
+.metadata-dialog button:focus-visible,
+.metadata-dialog a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.metadata-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.metadata-dialog-heading h2 {
+  margin: 0;
+  color: var(--navy);
+  font-size: 1.2rem;
+}
+
+.metadata-dialog .metadata-grid {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 900px) {
+  .timeline-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .timeline-heading {
+    flex-direction: column;
+  }
+
+  .timeline-statuses {
+    justify-content: flex-start;
+  }
+}
