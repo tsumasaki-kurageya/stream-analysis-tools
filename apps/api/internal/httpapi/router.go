@@ -27,6 +27,7 @@ type StreamService interface {
 	Preview(context.Context, string) (streams.Metadata, error)
 	Register(context.Context, string) (streams.Stream, error)
 	List(context.Context, streams.ListOptions) ([]streams.Stream, error)
+	ListItems(context.Context, streams.ListOptions) ([]streams.ListItem, error)
 	Get(context.Context, uuid.UUID) (streams.Stream, error)
 }
 
@@ -127,16 +128,16 @@ func (server *server) ListStreams(
 		offset = *request.Params.Offset
 	}
 
-	listed, err := server.streams.List(ctx, streams.ListOptions{Limit: limit, Offset: offset})
+	listed, err := server.streams.ListItems(ctx, streams.ListOptions{Limit: limit, Offset: offset})
 	if err != nil {
 		problem, status := problemFor(err)
 		return openapiv1.ListStreamsdefaultApplicationProblemPlusJSONResponse{
 			Body: problem, StatusCode: status,
 		}, nil
 	}
-	items := make([]openapiv1.Stream, 0, len(listed))
-	for _, stream := range listed {
-		items = append(items, streamResponse(stream))
+	items := make([]openapiv1.StreamListItem, 0, len(listed))
+	for _, item := range listed {
+		items = append(items, streamListItemResponse(item))
 	}
 	return openapiv1.ListStreams200JSONResponse{
 		Items: items, Limit: limit, Offset: offset,
@@ -518,6 +519,32 @@ func streamResponse(stream streams.Stream) openapiv1.Stream {
 		CreatedAt:         stream.CreatedAt,
 		UpdatedAt:         stream.UpdatedAt,
 	}
+}
+
+func streamListItemResponse(item streams.ListItem) openapiv1.StreamListItem {
+	response := openapiv1.StreamListItem{
+		Id:                item.ID.String(),
+		YoutubeVideoId:    item.YouTubeVideoID,
+		CanonicalUrl:      item.CanonicalURL,
+		Title:             item.Title,
+		ChannelId:         item.ChannelID,
+		ChannelTitle:      item.ChannelTitle,
+		ThumbnailUrl:      item.ThumbnailURL,
+		ScheduledStartAt:  item.ScheduledStartAt,
+		ActualStartAt:     item.ActualStartAt,
+		ActualEndAt:       item.ActualEndAt,
+		DurationMs:        durationMilliseconds(item.Duration),
+		LifecycleStatus:   openapiv1.StreamLifecycleStatus(item.LifecycleStatus),
+		MetadataFetchedAt: item.MetadataFetchedAt,
+		CreatedAt:         item.CreatedAt,
+		UpdatedAt:         item.UpdatedAt,
+		ChatMessageCount:  item.ChatMessageCount,
+	}
+	if item.CollectionStatus != nil {
+		status := openapiv1.CollectionJobStatus(*item.CollectionStatus)
+		response.CollectionStatus = &status
+	}
+	return response
 }
 
 func durationMilliseconds(duration *time.Duration) *int64 {

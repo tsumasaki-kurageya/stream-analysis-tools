@@ -7,33 +7,9 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  finalize:
-    name: Finalize stream list read model
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.head_ref }}
-      - uses: actions/setup-go@v6
-        with:
-          go-version: 1.26.5
-          cache: false
-      - run: python3 scripts/finalize-issue-56.py
-      - run: gofmt -w apps/api/internal/httpapi/router.go
-      - name: Commit finalized router and restore CI
-        run: |
-          git fetch origin agent/issue-54-app-shell --depth=1
-          git checkout FETCH_HEAD -- .github/workflows/ci.yml
-          git rm scripts/finalize-issue-56.py
-          git add apps/api/internal/httpapi/router.go .github/workflows/ci.yml
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git commit -m "Map stream list read model to HTTP response (#56)"
-          git push origin HEAD:${{ github.head_ref }}
-
   contract:
     name: OpenAPI Contract
     runs-on: ubuntu-latest
@@ -70,6 +46,13 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: make check build
       - run: npm run test:e2e
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
 
   api:
     name: Main API
@@ -84,3 +67,45 @@ jobs:
           go-version: 1.26.5
           cache: false
       - run: make check build
+
+  worker:
+    name: Collection Worker
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.13.15
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: 0.11.33
+          enable-cache: true
+          cache-dependency-glob: apps/worker/uv.lock
+      - run: uv sync --frozen --all-groups
+      - run: make check build
+
+  postgres:
+    name: PostgreSQL
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: 1.26.5
+          cache-dependency-path: apps/api/go.sum
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.13.15
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: 0.11.33
+          enable-cache: true
+          cache-dependency-glob: apps/worker/uv.lock
+      - run: uv sync --project apps/worker --frozen --all-groups
+      - run: bash -n infrastructure/postgres/init/10-create-test-database.sh scripts/postgres-wait.sh tests/postgres/compose-smoke.sh
+      - run: shellcheck infrastructure/postgres/init/10-create-test-database.sh scripts/postgres-wait.sh tests/postgres/compose-smoke.sh
+      - run: make db-smoke
+      - run: make db-integration-test
