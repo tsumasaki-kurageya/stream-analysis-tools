@@ -4,6 +4,7 @@ import "./styles.css";
 import "./stream-list.css";
 import "./reservations.css";
 import "./workspace.css";
+import "./chat-activity.css";
 import { App } from "./App";
 
 const root = document.getElementById("root");

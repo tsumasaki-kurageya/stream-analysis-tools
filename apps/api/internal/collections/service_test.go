@@ -10,6 +10,39 @@ import (
 	"github.com/google/uuid"
 )
 
+func TestChatActivityValidatesBucketSizeAndReturnsContinuousReadModel(t *testing.T) {
+	streamID := uuid.New()
+	repository := &activityRepositoryStub{
+		repositoryStub: repositoryStub{},
+		activity: []ActivityBucket{
+			{StartOffsetMilliseconds: 0, MessageCount: 1},
+			{StartOffsetMilliseconds: 10_000, MessageCount: 0},
+			{StartOffsetMilliseconds: 20_000, MessageCount: 4},
+		},
+	}
+	service := NewService(repository)
+
+	activity, err := service.ChatActivity(context.Background(), streamID, 10)
+	if err != nil {
+		t.Fatalf("chat activity: %v", err)
+	}
+	if activity.BucketSeconds != 10 || len(activity.Items) != 3 {
+		t.Fatalf("unexpected activity: %+v", activity)
+	}
+	if activity.Items[1].MessageCount != 0 {
+		t.Fatalf("zero-count bucket must be preserved: %+v", activity.Items[1])
+	}
+	if repository.bucketSeconds != 10 {
+		t.Fatalf("bucketSeconds=%d, want 10", repository.bucketSeconds)
+	}
+
+	for _, invalid := range []int{0, 1, 15, 60} {
+		if _, err := service.ChatActivity(context.Background(), streamID, invalid); !errors.Is(err, ErrInvalidRequest) {
+			t.Fatalf("bucket %d: expected invalid request, got %v", invalid, err)
+		}
+	}
+}
+
 func TestListMessagesUsesStableOpaqueCursor(t *testing.T) {
 	streamID := uuid.New()
 	firstID := uuid.MustParse("00000000-0000-4000-8000-000000000001")
@@ -141,6 +174,21 @@ func (repository *repositoryStub) SearchMessages(
 	repository.limit = limit
 	repository.cursor = cursor
 	return repository.messages, repository.err
+}
+
+type activityRepositoryStub struct {
+	repositoryStub
+	activity      []ActivityBucket
+	bucketSeconds int
+}
+
+func (repository *activityRepositoryStub) ChatActivity(
+	_ context.Context,
+	_ uuid.UUID,
+	bucketSeconds int,
+) ([]ActivityBucket, error) {
+	repository.bucketSeconds = bucketSeconds
+	return repository.activity, repository.err
 }
 
 func jobFixture(streamID uuid.UUID) Job {

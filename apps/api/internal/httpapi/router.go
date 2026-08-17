@@ -39,6 +39,10 @@ type CollectionService interface {
 	SearchMessages(context.Context, uuid.UUID, string, int, string) (collections.MessagePage, error)
 }
 
+type ChatActivityService interface {
+	ChatActivity(context.Context, uuid.UUID, int) (collections.Activity, error)
+}
+
 type ReservationService interface {
 	Create(context.Context, string) (reservations.Reservation, error)
 	List(context.Context, reservations.ListOptions) ([]reservations.Reservation, int, error)
@@ -237,6 +241,48 @@ func (server *server) RetryCollection(
 		Headers: openapiv1.RetryCollection202ResponseHeaders{
 			Location: &location,
 		},
+	}, nil
+}
+
+func (server *server) GetChatActivity(
+	ctx context.Context,
+	request openapiv1.GetChatActivityRequestObject,
+) (openapiv1.GetChatActivityResponseObject, error) {
+	streamID, err := uuid.Parse(string(request.StreamId))
+	if err != nil {
+		problem := requestProblem()
+		return openapiv1.GetChatActivitydefaultApplicationProblemPlusJSONResponse{
+			Body: problem, StatusCode: problem.Status,
+		}, nil
+	}
+	bucketSeconds := 10
+	if request.Params.BucketSeconds != nil {
+		bucketSeconds = int(*request.Params.BucketSeconds)
+	}
+	service, ok := server.collections.(ChatActivityService)
+	if !ok {
+		problem, status := collectionProblemFor(collections.ErrInvalidRequest)
+		return openapiv1.GetChatActivitydefaultApplicationProblemPlusJSONResponse{
+			Body: problem, StatusCode: status,
+		}, nil
+	}
+	activity, err := service.ChatActivity(ctx, streamID, bucketSeconds)
+	if err != nil {
+		problem, status := collectionProblemFor(err)
+		return openapiv1.GetChatActivitydefaultApplicationProblemPlusJSONResponse{
+			Body: problem, StatusCode: status,
+		}, nil
+	}
+	items := make([]openapiv1.ChatActivityBucket, 0, len(activity.Items))
+	for _, item := range activity.Items {
+		items = append(items, openapiv1.ChatActivityBucket{
+			StartOffsetMilliseconds: item.StartOffsetMilliseconds,
+			MessageCount:            item.MessageCount,
+		})
+	}
+	return openapiv1.GetChatActivity200JSONResponse{
+		BucketSeconds: openapiv1.ChatActivityBucketSeconds(activity.BucketSeconds),
+		Items:         items,
 	}, nil
 }
 

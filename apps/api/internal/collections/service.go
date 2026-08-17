@@ -24,11 +24,16 @@ type Repository interface {
 	SearchMessages(context.Context, uuid.UUID, string, int, *Cursor) ([]ChatMessage, error)
 }
 
+type ActivityRepository interface {
+	ChatActivity(context.Context, uuid.UUID, int) ([]ActivityBucket, error)
+}
+
 type Service struct {
 	repository Repository
 }
 
 var _ Repository = (*PostgresRepository)(nil)
+var _ ActivityRepository = (*PostgresRepository)(nil)
 
 func NewService(repository Repository) *Service {
 	return &Service{repository: repository}
@@ -53,6 +58,28 @@ func (service *Service) Retry(ctx context.Context, jobID uuid.UUID) (Job, error)
 		return Job{}, fmt.Errorf("%w: job ID is required", ErrInvalidRequest)
 	}
 	return service.repository.Retry(ctx, jobID)
+}
+
+func (service *Service) ChatActivity(
+	ctx context.Context,
+	streamID uuid.UUID,
+	bucketSeconds int,
+) (Activity, error) {
+	if streamID == uuid.Nil {
+		return Activity{}, fmt.Errorf("%w: stream ID is required", ErrInvalidRequest)
+	}
+	if bucketSeconds != 5 && bucketSeconds != 10 && bucketSeconds != 30 {
+		return Activity{}, fmt.Errorf("%w: bucket seconds must be 5, 10, or 30", ErrInvalidRequest)
+	}
+	repository, ok := service.repository.(ActivityRepository)
+	if !ok {
+		return Activity{}, fmt.Errorf("%w: chat activity is unavailable", ErrInvalidRequest)
+	}
+	items, err := repository.ChatActivity(ctx, streamID, bucketSeconds)
+	if err != nil {
+		return Activity{}, err
+	}
+	return Activity{BucketSeconds: bucketSeconds, Items: items}, nil
 }
 
 func (service *Service) ListMessages(

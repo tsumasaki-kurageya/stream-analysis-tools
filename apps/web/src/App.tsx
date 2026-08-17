@@ -18,6 +18,7 @@ import {
   type StreamPreview,
 } from "./api/client";
 import { YouTubePlayer, type PlayerSeekRequest } from "./YouTubePlayer";
+import { ChatActivityChart } from "./ChatActivity";
 import { ReservationsPage } from "./ReservationsPage";
 import { StreamListPage } from "./StreamListPage";
 import { messageForCode, userFacingError } from "./userMessages";
@@ -693,6 +694,11 @@ function CollectionWorkspace({
 
           {!isActive ? (
             <>
+              <ChatActivityChart
+                streamId={streamId}
+                playbackOffsetMilliseconds={playbackOffsetMilliseconds}
+                onSeek={onSeek}
+              />
               <ChatSearch
                 streamId={streamId}
                 playbackOffsetMilliseconds={playbackOffsetMilliseconds}
