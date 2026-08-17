@@ -7,6 +7,8 @@ export type StreamPreview = components["schemas"]["StreamPreview"];
 export type CollectionJob = components["schemas"]["CollectionJob"];
 export type ChatMessage = components["schemas"]["ChatMessage"];
 export type ChatMessagePage = components["schemas"]["ChatMessagePage"];
+export type ChatActivity = components["schemas"]["ChatActivity"];
+export type ChatActivityBucket = components["schemas"]["ChatActivityBucket"];
 export type ProblemDetails = components["schemas"]["ProblemDetails"];
 export type Reservation = components["schemas"]["Reservation"];
 export type ReservationList = components["schemas"]["ReservationList"];
@@ -64,9 +66,7 @@ export function getReservation(reservationId: string): Promise<Reservation> {
 export function cancelReservation(reservationId: string): Promise<Reservation> {
   return request(
     `/v1/reservations/${encodeURIComponent(reservationId)}/cancel`,
-    {
-      method: "POST",
-    },
+    { method: "POST" },
   );
 }
 
@@ -86,6 +86,15 @@ export function retryCollection(jobId: string): Promise<CollectionJob> {
   return request(`/v1/collection-jobs/${encodeURIComponent(jobId)}/retry`, {
     method: "POST",
   });
+}
+
+export function getChatActivity(
+  streamId: string,
+  bucketSeconds: 5 | 10 | 30,
+): Promise<ChatActivity> {
+  return request(
+    `/v1/streams/${encodeURIComponent(streamId)}/chat-activity?bucketSeconds=${bucketSeconds}`,
+  );
 }
 
 export function listChatMessages(

@@ -18,6 +18,27 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
+// Defines values for ChatActivityBucketSeconds.
+const (
+	ChatActivityBucketSecondsN10 ChatActivityBucketSeconds = 10
+	ChatActivityBucketSecondsN30 ChatActivityBucketSeconds = 30
+	ChatActivityBucketSecondsN5  ChatActivityBucketSeconds = 5
+)
+
+// Valid indicates whether the value is a known member of the ChatActivityBucketSeconds enum.
+func (e ChatActivityBucketSeconds) Valid() bool {
+	switch e {
+	case ChatActivityBucketSecondsN10:
+		return true
+	case ChatActivityBucketSecondsN30:
+		return true
+	case ChatActivityBucketSecondsN5:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ChatMessageMessageType.
 const (
 	Text ChatMessageMessageType = "text"
@@ -166,6 +187,42 @@ func (e StreamLifecycleStatus) Valid() bool {
 	default:
 		return false
 	}
+}
+
+// Defines values for GetChatActivityParamsBucketSeconds.
+const (
+	GetChatActivityParamsBucketSecondsN10 GetChatActivityParamsBucketSeconds = 10
+	GetChatActivityParamsBucketSecondsN30 GetChatActivityParamsBucketSeconds = 30
+	GetChatActivityParamsBucketSecondsN5  GetChatActivityParamsBucketSeconds = 5
+)
+
+// Valid indicates whether the value is a known member of the GetChatActivityParamsBucketSeconds enum.
+func (e GetChatActivityParamsBucketSeconds) Valid() bool {
+	switch e {
+	case GetChatActivityParamsBucketSecondsN10:
+		return true
+	case GetChatActivityParamsBucketSecondsN30:
+		return true
+	case GetChatActivityParamsBucketSecondsN5:
+		return true
+	default:
+		return false
+	}
+}
+
+// ChatActivity defines model for ChatActivity.
+type ChatActivity struct {
+	BucketSeconds ChatActivityBucketSeconds `json:"bucketSeconds"`
+	Items         []ChatActivityBucket      `json:"items"`
+}
+
+// ChatActivityBucketSeconds defines model for ChatActivity.BucketSeconds.
+type ChatActivityBucketSeconds int
+
+// ChatActivityBucket defines model for ChatActivityBucket.
+type ChatActivityBucket struct {
+	MessageCount            int64 `json:"messageCount"`
+	StartOffsetMilliseconds int64 `json:"startOffsetMilliseconds"`
 }
 
 // ChatMessage defines model for ChatMessage.
@@ -393,6 +450,15 @@ type ListStreamsParams struct {
 	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
+// GetChatActivityParams defines parameters for GetChatActivity.
+type GetChatActivityParams struct {
+	// BucketSeconds Aggregation interval in seconds.
+	BucketSeconds *GetChatActivityParamsBucketSeconds `form:"bucketSeconds,omitempty" json:"bucketSeconds,omitempty"`
+}
+
+// GetChatActivityParamsBucketSeconds defines parameters for GetChatActivity.
+type GetChatActivityParamsBucketSeconds int
+
 // ListChatMessagesParams defines parameters for ListChatMessages.
 type ListChatMessagesParams struct {
 	// Limit Maximum number of messages to return.
@@ -590,6 +656,9 @@ type ServerInterface interface {
 	// GetStream Get a registered stream
 	// (GET /v1/streams/{streamId})
 	GetStream(w http.ResponseWriter, r *http.Request, streamId string)
+	// GetChatActivity Get chat activity buckets
+	// (GET /v1/streams/{streamId}/chat-activity)
+	GetChatActivity(w http.ResponseWriter, r *http.Request, streamId StreamId, params GetChatActivityParams)
 	// ListChatMessages List persisted chat messages
 	// (GET /v1/streams/{streamId}/chat-messages)
 	ListChatMessages(w http.ResponseWriter, r *http.Request, streamId StreamId, params ListChatMessagesParams)
@@ -856,6 +925,48 @@ func (siw *ServerInterfaceWrapper) GetStream(w http.ResponseWriter, r *http.Requ
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetStream(w, r, streamId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetChatActivity operation middleware
+func (siw *ServerInterfaceWrapper) GetChatActivity(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "streamId" -------------
+	var streamId StreamId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "streamId", r.PathValue("streamId"), &streamId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "streamId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetChatActivityParams
+
+	// ------------- Optional query parameter "bucketSeconds" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "bucketSeconds", r.URL.Query(), &params.BucketSeconds, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "bucketSeconds"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "bucketSeconds", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetChatActivity(w, r, streamId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1170,6 +1281,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/collection-jobs/{jobId}/retry", wrapper.RetryCollection)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/streams/{streamId}/chat-messages", wrapper.ListChatMessages)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/streams/{streamId}/chat-search", wrapper.SearchChatMessages)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/streams/{streamId}/chat-activity", wrapper.GetChatActivity)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/reservations", wrapper.ListReservations)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/v1/reservations", wrapper.CreateReservation)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/v1/reservations/{reservationId}", wrapper.GetReservation)
@@ -1855,6 +1967,76 @@ func (response GetStreamdefaultApplicationProblemPlusJSONResponse) VisitGetStrea
 	return err
 }
 
+type GetChatActivityRequestObject struct {
+	StreamId StreamId `json:"streamId"`
+	Params   GetChatActivityParams
+}
+
+type GetChatActivityResponseObject interface {
+	VisitGetChatActivityResponse(w http.ResponseWriter) error
+}
+
+type GetChatActivity200JSONResponse ChatActivity
+
+func (response GetChatActivity200JSONResponse) VisitGetChatActivityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetChatActivity400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetChatActivity400ApplicationProblemPlusJSONResponse) VisitGetChatActivityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetChatActivity404ApplicationProblemPlusJSONResponse ProblemDetails
+
+func (response GetChatActivity404ApplicationProblemPlusJSONResponse) VisitGetChatActivityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetChatActivitydefaultApplicationProblemPlusJSONResponse struct {
+	Body       ProblemDetails
+	StatusCode int
+}
+
+func (response GetChatActivitydefaultApplicationProblemPlusJSONResponse) VisitGetChatActivityResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type ListChatMessagesRequestObject struct {
 	StreamId StreamId `json:"streamId"`
 	Params   ListChatMessagesParams
@@ -2147,6 +2329,9 @@ type StrictServerInterface interface {
 	// GetStream Get a registered stream
 	// (GET /v1/streams/{streamId})
 	GetStream(ctx context.Context, request GetStreamRequestObject) (GetStreamResponseObject, error)
+	// GetChatActivity Get chat activity buckets
+	// (GET /v1/streams/{streamId}/chat-activity)
+	GetChatActivity(ctx context.Context, request GetChatActivityRequestObject) (GetChatActivityResponseObject, error)
 	// ListChatMessages List persisted chat messages
 	// (GET /v1/streams/{streamId}/chat-messages)
 	ListChatMessages(ctx context.Context, request ListChatMessagesRequestObject) (ListChatMessagesResponseObject, error)
@@ -2466,6 +2651,33 @@ func (sh *strictHandler) GetStream(w http.ResponseWriter, r *http.Request, strea
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
 	} else if validResponse, ok := response.(GetStreamResponseObject); ok {
 		if err := validResponse.VisitGetStreamResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetChatActivity operation middleware
+func (sh *strictHandler) GetChatActivity(w http.ResponseWriter, r *http.Request, streamId StreamId, params GetChatActivityParams) {
+	var request GetChatActivityRequestObject
+
+	request.StreamId = streamId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetChatActivity(ctx, request.(GetChatActivityRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetChatActivity")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetChatActivityResponseObject); ok {
+		if err := validResponse.VisitGetChatActivityResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

@@ -75,6 +75,16 @@ type ChatMessage struct {
 	MessageType        string
 }
 
+type ActivityBucket struct {
+	StartOffsetMilliseconds int64
+	MessageCount            int64
+}
+
+type Activity struct {
+	BucketSeconds int
+	Items         []ActivityBucket
+}
+
 type Cursor struct {
 	OffsetMilliseconds int64
 	ID                 uuid.UUID

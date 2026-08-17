@@ -320,6 +320,35 @@ paths:
           $ref: "#/components/responses/Problem"
         default:
           $ref: "#/components/responses/Problem"
+  /v1/streams/{streamId}/chat-activity:
+    get:
+      operationId: getChatActivity
+      summary: Get chat activity buckets
+      description: Returns continuous stream-relative chat-count buckets for Timeline analysis.
+      tags:
+        - Chat
+      parameters:
+        - $ref: "#/components/parameters/StreamId"
+        - name: bucketSeconds
+          in: query
+          description: Aggregation interval in seconds.
+          schema:
+            type: integer
+            enum: [5, 10, 30]
+            default: 10
+      responses:
+        "200":
+          description: Continuous chat activity buckets.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatActivity"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
   /v1/reservations:
     post:
       operationId: createReservation
@@ -778,6 +807,35 @@ components:
           minLength: 1
         retryable:
           type: boolean
+    ChatActivityBucket:
+      type: object
+      additionalProperties: false
+      required:
+        - startOffsetMilliseconds
+        - messageCount
+      properties:
+        startOffsetMilliseconds:
+          type: integer
+          format: int64
+          minimum: 0
+        messageCount:
+          type: integer
+          format: int64
+          minimum: 0
+    ChatActivity:
+      type: object
+      additionalProperties: false
+      required:
+        - bucketSeconds
+        - items
+      properties:
+        bucketSeconds:
+          type: integer
+          enum: [5, 10, 30]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatActivityBucket"
     ChatMessage:
       type: object
       additionalProperties: false

@@ -188,6 +188,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/streams/{streamId}/chat-activity": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get chat activity buckets
+     * @description Returns continuous stream-relative chat-count buckets for Timeline analysis.
+     */
+    get: operations["getChatActivity"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/reservations": {
     parameters: {
       query?: never;
@@ -395,6 +415,17 @@ export interface components {
       code: string;
       message: string;
       retryable: boolean;
+    };
+    ChatActivityBucket: {
+      /** Format: int64 */
+      startOffsetMilliseconds: number;
+      /** Format: int64 */
+      messageCount: number;
+    };
+    ChatActivity: {
+      /** @enum {integer} */
+      bucketSeconds: 5 | 10 | 30;
+      items: components["schemas"]["ChatActivityBucket"][];
     };
     ChatMessage: {
       id: string;
@@ -730,6 +761,35 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ChatMessagePage"];
+        };
+      };
+      400: components["responses"]["Problem"];
+      404: components["responses"]["Problem"];
+      default: components["responses"]["Problem"];
+    };
+  };
+  getChatActivity: {
+    parameters: {
+      query?: {
+        /** @description Aggregation interval in seconds. */
+        bucketSeconds?: 5 | 10 | 30;
+      };
+      header?: never;
+      path: {
+        /** @description Internal stream identifier. */
+        streamId: components["parameters"]["StreamId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Continuous chat activity buckets. */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChatActivity"];
         };
       };
       400: components["responses"]["Problem"];
