@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   ApiProblem,
   createStream,
@@ -835,6 +835,9 @@ function ChatMessageList({
   const [nextCursor, setNextCursor] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
   const [chatError, setChatError] = useState<string | null>(null);
+  const [followPaused, setFollowPaused] = useState(false);
+  const listRef = useRef<HTMLOListElement | null>(null);
+  const previousPlaybackRef = useRef(playbackOffsetMilliseconds);
 
   const loadPage = useCallback(
     async (cursor?: string) => {
@@ -883,11 +886,54 @@ function ChatMessageList({
     undefined,
   )?.id;
 
+  useEffect(() => {
+    const previous = previousPlaybackRef.current;
+    previousPlaybackRef.current = playbackOffsetMilliseconds;
+    if (
+      followPaused &&
+      Math.abs(playbackOffsetMilliseconds - previous) >= 3_000
+    ) {
+      setFollowPaused(false);
+    }
+  }, [followPaused, playbackOffsetMilliseconds]);
+
+  useEffect(() => {
+    if (followPaused || !currentMessageId) return;
+    const current = listRef.current?.querySelector<HTMLElement>(
+      `[data-message-id="${currentMessageId}"]`,
+    );
+    current?.scrollIntoView({ block: "nearest" });
+  }, [currentMessageId, followPaused]);
+
+  function pauseFollow() {
+    if (messages.length > 0) setFollowPaused(true);
+  }
+
+  function resumeFollow() {
+    setFollowPaused(false);
+    if (!currentMessageId) return;
+    const current = listRef.current?.querySelector<HTMLElement>(
+      `[data-message-id="${currentMessageId}"]`,
+    );
+    current?.scrollIntoView({ block: "nearest" });
+  }
+
   return (
     <div className="chat-panel" aria-labelledby="chat-title">
       <div className="chat-heading">
         <h3 id="chat-title">収集済みチャット</h3>
-        {messages.length > 0 ? <span>{messages.length}件表示</span> : null}
+        <div className="chat-heading-actions">
+          {messages.length > 0 ? <span>{messages.length}件表示</span> : null}
+          {followPaused ? (
+            <button
+              type="button"
+              className="secondary-button chat-follow-resume"
+              onClick={resumeFollow}
+            >
+              再生位置に戻る
+            </button>
+          ) : null}
+        </div>
       </div>
       {chatError ? (
         <p className="inline-error" role="alert">
@@ -901,10 +947,22 @@ function ChatMessageList({
       ) : messages.length === 0 ? (
         <p className="chat-empty">保存済みのチャットはありません。</p>
       ) : (
-        <ol className="chat-list" aria-label="収集済みチャット">
+        <ol
+          ref={listRef}
+          className="chat-list"
+          aria-label="収集済みチャット"
+          data-follow={followPaused ? "paused" : "active"}
+          onWheel={pauseFollow}
+          onTouchMove={pauseFollow}
+          onPointerDown={(event) => {
+            if ((event.target as HTMLElement).closest("button")) return;
+            pauseFollow();
+          }}
+        >
           {messages.map((message) => (
             <li
               key={message.id}
+              data-message-id={message.id}
               aria-current={
                 message.id === currentMessageId ? "time" : undefined
               }
@@ -913,7 +971,10 @@ function ChatMessageList({
                 className="chat-seek"
                 type="button"
                 aria-label={`${formatOffset(message.offsetMilliseconds)}へ移動: ${message.messageText}`}
-                onClick={() => onSeek(message.offsetMilliseconds)}
+                onClick={() => {
+                  setFollowPaused(false);
+                  onSeek(message.offsetMilliseconds);
+                }}
               >
                 <time dateTime={message.publishedAt}>
                   {formatOffset(message.offsetMilliseconds)}
