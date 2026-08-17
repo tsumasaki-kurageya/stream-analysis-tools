@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Stream Analysis Tools API
-  version: 0.4.0
+  version: 0.5.0
   description: HTTP contract for the stream analysis main API.
 servers:
   - url: http://localhost:8080
@@ -100,7 +100,7 @@ paths:
     get:
       operationId: listStreams
       summary: List registered streams
-      description: Returns registered streams in reverse creation order with offset pagination.
+      description: Returns registered streams with collection status and chat counts in reverse creation order with offset pagination.
       tags:
         - Streams
       parameters:
@@ -121,7 +121,7 @@ paths:
             default: 0
       responses:
         "200":
-          description: A page of registered streams.
+          description: A page of registered streams with analysis readiness data.
           content:
             application/json:
               schema:
@@ -557,6 +557,19 @@ components:
             updatedAt:
               type: string
               format: date-time
+    StreamListItem:
+      allOf:
+        - $ref: "#/components/schemas/Stream"
+        - type: object
+          required:
+            - chatMessageCount
+          properties:
+            collectionStatus:
+              $ref: "#/components/schemas/CollectionJobStatus"
+            chatMessageCount:
+              type: integer
+              format: int64
+              minimum: 0
     StreamList:
       type: object
       additionalProperties: false
@@ -568,7 +581,7 @@ components:
         items:
           type: array
           items:
-            $ref: "#/components/schemas/Stream"
+            $ref: "#/components/schemas/StreamListItem"
         limit:
           type: integer
           minimum: 1
