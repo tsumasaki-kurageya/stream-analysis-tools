@@ -1,4 +1,4 @@
-import { FormEvent, MouseEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   ApiProblem,
   createStream,
@@ -14,10 +14,12 @@ import {
   type ChatMessage,
   type CollectionJob,
   type Stream,
+  type StreamListItem,
   type StreamPreview,
 } from "./api/client";
 import { YouTubePlayer, type PlayerSeekRequest } from "./YouTubePlayer";
 import { ReservationsPage } from "./ReservationsPage";
+import { StreamListPage } from "./StreamListPage";
 import { messageForCode, userFacingError } from "./userMessages";
 
 const COLLECTION_POLL_INTERVAL_MS = 2_000;
@@ -26,11 +28,10 @@ const PREVIEW_HISTORY_LIMIT = 8;
 
 export function App() {
   const [path, setPath] = useState(window.location.pathname);
-  const [streams, setStreams] = useState<Stream[]>([]);
+  const [streams, setStreams] = useState<StreamListItem[]>([]);
   const [url, setUrl] = useState("");
   const [preview, setPreview] = useState<StreamPreview | null>(null);
-  const [previewHistory, setPreviewHistory] =
-    useState<StreamPreview[]>(readPreviewHistory);
+  const [, setPreviewHistory] = useState<StreamPreview[]>(readPreviewHistory);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isLoadingList, setIsLoadingList] = useState(
@@ -40,8 +41,6 @@ export function App() {
   const [selectedStream, setSelectedStream] = useState<Stream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(true);
-  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
 
   const handleRequestError = useCallback((requestError: unknown) => {
     if (
@@ -142,11 +141,6 @@ export function App() {
     }
   }
 
-  function openStream(event: MouseEvent<HTMLAnchorElement>, stream: Stream) {
-    event.preventDefault();
-    navigateToStream(stream);
-  }
-
   function navigateToStream(stream: Stream) {
     setSelectedStream(stream);
     const nextPath = `/streams/${stream.id}`;
@@ -156,7 +150,6 @@ export function App() {
 
   const detailMatch = path.match(/^\/streams\/([^/]+)$/);
   const reservationPath = path.startsWith("/reservations");
-  const streamListPath = !reservationPath && !detailMatch;
   const selectedStreamForPath =
     detailMatch?.[1] === selectedStream?.id ? selectedStream : null;
 
@@ -220,28 +213,6 @@ export function App() {
             予約
           </a>
         </nav>
-        {streamListPath ? (
-          <div className="panel-controls" role="group" aria-label="パネル表示">
-            <button
-              type="button"
-              className="icon-button"
-              aria-pressed={isLeftPanelOpen}
-              aria-label={`左パネルを${isLeftPanelOpen ? "閉じる" : "開く"}`}
-              onClick={() => setIsLeftPanelOpen((open) => !open)}
-            >
-              <span aria-hidden="true">☰</span>
-            </button>
-            <button
-              type="button"
-              className="icon-button"
-              aria-pressed={isRightPanelOpen}
-              aria-label={`右パネルを${isRightPanelOpen ? "閉じる" : "開く"}`}
-              onClick={() => setIsRightPanelOpen((open) => !open)}
-            >
-              <span aria-hidden="true">◫</span>
-            </button>
-          </div>
-        ) : null}
       </header>
 
       {error ? (
@@ -274,146 +245,27 @@ export function App() {
           )}
         </main>
       ) : (
-        <main
-          className={`workspace-layout${isLeftPanelOpen ? "" : " left-panel-closed"}${isRightPanelOpen ? "" : " right-panel-closed"}`}
-        >
-          {isLeftPanelOpen ? (
-            <aside
-              className="workspace-panel left-panel"
-              aria-label="ストリームライブラリ"
-            >
-              <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">ライブラリ</p>
-                  <h2>保存済み</h2>
-                </div>
-                <span className="count">{streams.length}件</span>
-              </div>
-              {isLoadingList ? (
-                <p className="panel-state" role="status">
-                  ストリームを読み込んでいます…
-                </p>
-              ) : libraryError ? (
-                <p className="panel-state inline-error" role="alert">
-                  {libraryError}
-                </p>
-              ) : streams.length === 0 ? (
-                <p className="panel-state">
-                  保存済みのストリームはありません。
-                </p>
-              ) : (
-                <ol className="library-list" aria-label="保存済みストリーム">
-                  {streams.map((stream) => (
-                    <li key={stream.id}>
-                      <a
-                        href={`/streams/${stream.id}`}
-                        aria-label={stream.title}
-                        onClick={(event) => openStream(event, stream)}
-                      >
-                        {stream.thumbnailUrl ? (
-                          <img src={stream.thumbnailUrl} alt="" />
-                        ) : null}
-                        <span>
-                          <strong>{stream.title}</strong>
-                          <small>{stream.channelTitle}</small>
-                        </span>
-                      </a>
-                    </li>
-                  ))}
-                </ol>
-              )}
-              {previewHistory.length > 0 ? (
-                <section
-                  className="preview-history"
-                  aria-labelledby="preview-history-title"
-                >
-                  <h3 id="preview-history-title">最近のプレビュー</h3>
-                  <ol>
-                    {previewHistory.map((item) => (
-                      <li key={item.youtubeVideoId}>
-                        <button
-                          type="button"
-                          aria-label={`${item.title}を再び開く`}
-                          onClick={() => {
-                            setPreview(item);
-                            setUrl(item.canonicalUrl);
-                          }}
-                        >
-                          {item.thumbnailUrl ? (
-                            <img src={item.thumbnailUrl} alt="" />
-                          ) : null}
-                          <span>
-                            <strong>{item.title}</strong>
-                            <small>{item.channelTitle}</small>
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-              ) : null}
-            </aside>
-          ) : null}
-
-          <section className="workspace-main" aria-label="メインコンテンツ">
-            <section className="hero compact-hero">
-              <p className="eyebrow">YouTube ストリームワークスペース</p>
-              <h1>動画とチャットを、ひとつの場所で。</h1>
-              <p className="lede">
-                気になる配信をプレビューして保存し、動画の再生位置とチャットを同期しながら探索できます。
-              </p>
-            </section>
-            {preview ? (
-              <PreviewCard
-                preview={preview}
-                isRegistering={isRegistering}
-                onRegister={handleRegister}
-              />
-            ) : (
-              <section
-                className="workspace-welcome"
-                aria-labelledby="welcome-title"
-              >
-                <span aria-hidden="true">▶</span>
-                <h2 id="welcome-title">動画を選択してください</h2>
-                <p>
-                  左のライブラリから開くか、右の操作パネルで YouTube URL
-                  をプレビューします。
-                </p>
-              </section>
-            )}
-          </section>
-
-          {isRightPanelOpen ? (
-            <aside
-              className="workspace-panel right-panel"
-              aria-label="操作パネル"
-            >
-              <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">クイック操作</p>
-                  <h2>動画を追加</h2>
-                </div>
-              </div>
-              <form
-                className="registration-form panel-form"
-                onSubmit={handlePreview}
-              >
-                <label htmlFor="youtube-url">YouTube URL</label>
-                <input
-                  id="youtube-url"
-                  type="url"
-                  value={url}
-                  onChange={(event) => setUrl(event.target.value)}
-                  placeholder="https://youtube.com/watch?v=…"
-                  required
+        <main className="route-main" aria-label="メインコンテンツ">
+          <StreamListPage
+            streams={streams}
+            isLoading={isLoadingList}
+            error={libraryError}
+            url={url}
+            onURLChange={setUrl}
+            onPreview={handlePreview}
+            isPreviewing={isPreviewing}
+            preview={preview}
+            previewNode={
+              preview ? (
+                <PreviewCard
+                  preview={preview}
+                  isRegistering={isRegistering}
+                  onRegister={handleRegister}
                 />
-                <button type="submit" disabled={isPreviewing}>
-                  {isPreviewing ? "確認しています…" : "ストリームをプレビュー"}
-                </button>
-              </form>
-            </aside>
-          ) : null}
+              ) : null
+            }
+            onOpenStream={(stream) => navigate(`/streams/${stream.id}`)}
+          />
         </main>
       )}
     </div>

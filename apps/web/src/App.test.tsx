@@ -20,6 +20,8 @@ const stream = {
   id: "f47ac10b-58cc-4372-a567-0e02b2c3d479",
   createdAt: "2026-08-14T00:01:00Z",
   updatedAt: "2026-08-14T00:01:00Z",
+  collectionStatus: "succeeded" as const,
+  chatMessageCount: 42,
 };
 
 const succeededCollection = {
@@ -28,7 +30,7 @@ const succeededCollection = {
   kind: "chat_replay",
   status: "succeeded",
   attempt: 1,
-  processedCount: 0,
+  processedCount: 42,
   skippedCount: 0,
   requestedAt: "2026-08-14T00:02:00Z",
   updatedAt: "2026-08-14T00:03:00Z",
@@ -40,70 +42,88 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
-describe("route-owned app shell", () => {
-  it("scopes the legacy panels to the stream list route", async () => {
+describe("SCR-001 stream list", () => {
+  it("uses the stream list as the primary content with collapsed creation", async () => {
     window.history.replaceState(null, "", "/streams");
-    installFetch({ streamList: [] });
+    installFetch({ streamList: [stream] });
 
     render(<App />);
 
     expect(
-      await screen.findByRole("navigation", { name: "メインナビゲーション" }),
-    ).toBeDefined();
-    expect(
-      screen.getByRole("complementary", { name: "ストリームライブラリ" }),
-    ).toBeDefined();
-    expect(
-      screen.getByRole("complementary", { name: "操作パネル" }),
-    ).toBeDefined();
-    expect(
-      screen.getByRole("button", { name: "左パネルを閉じる" }),
-    ).toBeDefined();
-  });
-
-  it("lets the stream workspace own player and chat layout", async () => {
-    window.history.replaceState(null, "", `/streams/${stream.id}`);
-    installFetch({ streamList: [stream], workspace: true });
-
-    render(<App />);
-
-    expect(
-      await screen.findByRole("heading", { name: stream.title }),
-    ).toBeDefined();
-    expect(
-      screen.getByRole("region", { name: "動画プレビュー" }),
-    ).toBeDefined();
-    expect(
-      await screen.findByRole("search", { name: "収集済みチャットを検索" }),
-    ).toBeDefined();
-    expect(
-      screen.getByRole("complementary", { name: "チャットと収集" }),
-    ).toBeDefined();
-    expect(screen.queryByRole("button", { name: /右パネルを/ })).toBeNull();
-    expect(
-      screen.queryByRole("complementary", { name: "ストリームライブラリ" }),
-    ).toBeNull();
-  });
-
-  it("lets reservations own their main layout", async () => {
-    window.history.replaceState(null, "", "/reservations");
-    installFetch({ reservations: true });
-
-    render(<App />);
-
-    expect(
-      await screen.findByRole("heading", { name: "予約一覧" }),
+      await screen.findByRole("heading", { name: "配信一覧" }),
     ).toBeDefined();
     expect(screen.queryByRole("complementary")).toBeNull();
-    expect(screen.queryByRole("button", { name: /パネルを/ })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: "YouTube URL" })).toBeNull();
+    expect(
+      screen.getByRole("columnheader", { name: "タイトル" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("columnheader", { name: "チャンネル" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("columnheader", { name: "配信日時" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("columnheader", { name: "配信時間" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("columnheader", { name: "配信状態" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("columnheader", { name: "収集状態" }),
+    ).toBeDefined();
+    expect(
+      screen.getByRole("columnheader", { name: "チャット件数" }),
+    ).toBeDefined();
+    expect(screen.getByText("42")).toBeDefined();
   });
 
-  it("uses the shared header for Streams and Reservations navigation", async () => {
+  it("requires preview before registration and opens the workspace directly", async () => {
+    window.history.replaceState(null, "", "/streams");
+    installFetch({ streamList: [], preview: true, register: true });
+
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "配信を追加" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "YouTube URL" }), {
+      target: { value: preview.canonicalUrl },
+    });
+    expect(
+      screen.queryByRole("button", { name: "ライブラリに保存" }),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "プレビュー" }));
+    expect(
+      await screen.findByRole("heading", { name: preview.title }),
+    ).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "ライブラリに保存" }));
+
+    expect(
+      await screen.findByRole("link", { name: "ライブラリに戻る" }),
+    ).toBeDefined();
+    expect(window.location.pathname).toBe(`/streams/${stream.id}`);
+  });
+
+  it("opens a listed stream directly", async () => {
+    window.history.replaceState(null, "", "/streams");
+    installFetch({ streamList: [stream] });
+
+    render(<App />);
+    fireEvent.click(await screen.findByRole("link", { name: stream.title }));
+
+    expect(window.location.pathname).toBe(`/streams/${stream.id}`);
+    expect(
+      await screen.findByRole("link", { name: "ライブラリに戻る" }),
+    ).toBeDefined();
+  });
+});
+
+describe("shared navigation", () => {
+  it("navigates between Streams and Reservations", async () => {
     window.history.replaceState(null, "", "/streams");
     installFetch({ streamList: [], reservations: true });
 
     render(<App />);
-    await screen.findByText("保存済みのストリームはありません。");
+    await screen.findByRole("heading", { name: "配信一覧" });
 
     fireEvent.click(screen.getByRole("link", { name: "予約" }));
     expect(window.location.pathname).toBe("/reservations");
@@ -114,7 +134,7 @@ describe("route-owned app shell", () => {
     fireEvent.click(screen.getByRole("link", { name: "ストリーム" }));
     expect(window.location.pathname).toBe("/streams");
     expect(
-      await screen.findByText("保存済みのストリームはありません。"),
+      await screen.findByRole("heading", { name: "配信一覧" }),
     ).toBeDefined();
   });
 
@@ -123,7 +143,7 @@ describe("route-owned app shell", () => {
     installFetch({ streamList: [], reservations: true });
 
     render(<App />);
-    await screen.findByText("保存済みのストリームはありません。");
+    await screen.findByRole("heading", { name: "配信一覧" });
 
     act(() => {
       window.history.pushState(null, "", "/reservations");
@@ -136,51 +156,8 @@ describe("route-owned app shell", () => {
   });
 });
 
-describe("primary stream flows", () => {
-  it("previews, registers, and opens the workspace directly", async () => {
-    window.history.replaceState(null, "", "/streams");
-    installFetch({ streamList: [], preview: true, register: true });
-
-    render(<App />);
-    fireEvent.change(
-      await screen.findByRole("textbox", { name: "YouTube URL" }),
-      { target: { value: preview.canonicalUrl } },
-    );
-    fireEvent.click(
-      screen.getByRole("button", { name: "ストリームをプレビュー" }),
-    );
-    expect(
-      await screen.findByRole("heading", { name: preview.title }),
-    ).toBeDefined();
-
-    fireEvent.click(screen.getByRole("button", { name: "ライブラリに保存" }));
-    expect(
-      await screen.findByRole("link", { name: "ライブラリに戻る" }),
-    ).toBeDefined();
-
-    expect(window.location.pathname).toBe(`/streams/${stream.id}`);
-    expect(screen.queryByRole("button", { name: /右パネルを/ })).toBeNull();
-  });
-
-  it("opens a saved stream from the list and returns to the list", async () => {
-    window.history.replaceState(null, "", "/streams");
-    installFetch({ streamList: [stream] });
-
-    render(<App />);
-    fireEvent.click(await screen.findByRole("link", { name: stream.title }));
-
-    expect(window.location.pathname).toBe(`/streams/${stream.id}`);
-    fireEvent.click(screen.getByRole("link", { name: "ライブラリに戻る" }));
-    expect(window.location.pathname).toBe("/streams");
-    expect(
-      await screen.findByRole("link", { name: stream.title }),
-    ).toBeDefined();
-  });
-});
-
 function installFetch(options: {
   streamList?: Array<typeof stream>;
-  workspace?: boolean;
   reservations?: boolean;
   preview?: boolean;
   register?: boolean;
@@ -189,7 +166,6 @@ function installFetch(options: {
     "fetch",
     vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
-
       if (url === "/v1/streams?limit=20&offset=0") {
         return jsonResponse({
           items: options.streamList ?? [],
@@ -209,30 +185,15 @@ function installFetch(options: {
       if (url === "/v1/streams" && options.register) {
         return jsonResponse(stream, 201);
       }
-      if (url === `/v1/streams/${stream.id}` && options.workspace) {
+      if (url === `/v1/streams/${stream.id}`) {
         return jsonResponse(stream);
       }
       if (url === `/v1/streams/${stream.id}/collections/latest`) {
-        if (options.workspace) {
-          return jsonResponse(succeededCollection);
-        }
-        return jsonResponse(
-          {
-            title: "Collection job not found",
-            status: 404,
-            detail: "No collection has been requested for this stream.",
-            code: "COLLECTION_JOB_NOT_FOUND",
-          },
-          404,
-        );
+        return jsonResponse(succeededCollection);
       }
-      if (
-        url === `/v1/streams/${stream.id}/chat-messages?limit=50` &&
-        options.workspace
-      ) {
+      if (url === `/v1/streams/${stream.id}/chat-messages?limit=50`) {
         return jsonResponse({ items: [] });
       }
-
       throw new Error(`Unexpected request: ${url}`);
     }),
   );
