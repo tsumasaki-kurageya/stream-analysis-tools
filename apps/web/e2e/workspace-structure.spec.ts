@@ -26,6 +26,41 @@ test("SCR-002: shows metadata on demand and keeps successful collection compact"
   await expect(page.getByRole("heading", { name: stream.title })).toBeVisible();
   await expect(page.getByText("YouTube 動画 ID")).toHaveCount(0);
   await expect(page.getByText("収集済み · 3件")).toBeVisible();
+  await expect(page.getByText("動画プレビュー")).toHaveCount(0);
+  await expect(page.getByText("YouTube 再生")).toHaveCount(0);
+  await expect(page.getByText("終了", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("完了", { exact: true })).toHaveCount(0);
+
+  const layout = await page.evaluate(() => {
+    const header = document
+      .querySelector(".timeline-header")!
+      .getBoundingClientRect();
+    const content = document
+      .querySelector(".timeline-content")!
+      .getBoundingClientRect();
+    const video = document
+      .querySelector(".stream-video-pane")!
+      .getBoundingClientRect();
+    const chat = document
+      .querySelector(".stream-chat-pane")!
+      .getBoundingClientRect();
+    const searchButton = document
+      .querySelector<HTMLButtonElement>(".chat-search button[type='submit']")!
+      .getBoundingClientRect();
+    return {
+      headerBottom: header.bottom,
+      contentTop: content.top,
+      videoWidth: video.width,
+      videoRight: video.right,
+      chatLeft: chat.left,
+      searchButtonHeight: searchButton.height,
+    };
+  });
+  expect(layout.contentTop).toBeGreaterThanOrEqual(layout.headerBottom);
+  expect(layout.contentTop - layout.headerBottom).toBeLessThanOrEqual(12);
+  expect(layout.videoWidth).toBeGreaterThan(300);
+  expect(layout.videoRight).toBeLessThanOrEqual(layout.chatLeft);
+  expect(layout.searchButtonHeight).toBeLessThanOrEqual(40);
 
   await page.getByRole("button", { name: "配信情報を表示" }).click();
   const dialog = page.getByRole("dialog", { name: "配信情報" });

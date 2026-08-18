@@ -76,7 +76,9 @@ test("starts, restores, retries, and browses a chat collection", async ({
   const workspace = page.getByRole("complementary", { name: "チャットと収集" });
 
   await page.getByRole("button", { name: "収集を開始" }).click();
-  await expect(workspace.getByText("待機中")).toBeVisible();
+  await expect(
+    workspace.getByText("処理を開始できるワーカーを待っています…"),
+  ).toBeVisible();
 
   await page.reload();
   const restoredWorkspace = page.getByRole("complementary", {
@@ -91,7 +93,7 @@ test("starts, restores, retries, and browses a chat collection", async ({
     restoredWorkspace.getByText(
       "1件のチャットを保存できませんでした。 保存済みのメッセージは引き続き検索できます。",
     ),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page.getByRole("search", { name: "収集済みチャットを検索" }),
   ).toBeVisible();
@@ -100,8 +102,9 @@ test("starts, restores, retries, and browses a chat collection", async ({
   ).toHaveCount(2);
 
   await page.getByRole("button", { name: "収集を再試行" }).click();
-  await expect(restoredWorkspace.getByText("待機中")).toBeVisible();
-  await expect(restoredWorkspace.getByText("完了")).toBeVisible();
+  await expect(
+    restoredWorkspace.getByText("処理を開始できるワーカーを待っています…"),
+  ).toBeVisible();
   await expect(restoredWorkspace.getByText("収集済み · 3件")).toBeVisible();
 
   const chat = page.getByRole("list", { name: "収集済みチャット" });
@@ -132,7 +135,7 @@ test("keeps chat synchronized with playback and seeks from a message", async ({
     "aria-current",
     "time",
   );
-  await expect(page.getByText("再生位置 1:05")).toBeVisible();
+  await expect(page.getByText("再生位置 1:05")).toHaveCount(0);
 
   await chat
     .getByRole("button", { name: "0:05へ移動: Opening message" })
@@ -141,7 +144,7 @@ test("keeps chat synchronized with playback and seeks from a message", async ({
     "aria-current",
     "time",
   );
-  await expect(page.getByText("再生位置 0:05")).toBeVisible();
+  await expect(page.getByText("再生位置 0:05")).toHaveCount(0);
   await expect(page.getByText("Fake player at 5 seconds")).toBeVisible();
 });
 
@@ -169,7 +172,7 @@ test("searches chat and seeks playback from a keyboard-selected result", async (
   await result.focus();
   await page.keyboard.press("Enter");
 
-  await expect(page.getByText("再生位置 1:05")).toBeVisible();
+  await expect(page.getByText("再生位置 1:05")).toHaveCount(0);
   await expect(page.getByText("Fake player at 65 seconds")).toBeVisible();
   await expect(result).toHaveAttribute("aria-current", "time");
   await expect(

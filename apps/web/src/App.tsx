@@ -352,9 +352,6 @@ function StreamDetail({
     useState(0);
   const [seekRequest, setSeekRequest] = useState<PlayerSeekRequest>();
   const [metadataOpen, setMetadataOpen] = useState(false);
-  const [collectionStatus, setCollectionStatus] = useState<
-    CollectionJob["status"] | null
-  >(null);
 
   function seekTo(offsetMilliseconds: number) {
     setSeekRequest((current) => ({
@@ -364,7 +361,7 @@ function StreamDetail({
   }
 
   return (
-    <article className="stream-detail timeline-workspace">
+    <article className="timeline-workspace">
       <header className="timeline-header">
         <a
           className="back-link"
@@ -382,15 +379,7 @@ function StreamDetail({
             <h1>{stream.title}</h1>
             <p className="channel">{stream.channelTitle}</p>
           </div>
-          <div className="timeline-statuses">
-            <span className={`status status-${stream.lifecycleStatus}`}>
-              {lifecycleLabel(stream.lifecycleStatus)}
-            </span>
-            <span className="collection-status">
-              {collectionStatus
-                ? collectionStatusLabel(collectionStatus)
-                : "未収集"}
-            </span>
+          <div className="timeline-actions">
             <button
               type="button"
               className="icon-button metadata-info-button"
@@ -476,7 +465,6 @@ function StreamDetail({
             streamId={stream.id}
             playbackOffsetMilliseconds={playbackOffsetMilliseconds}
             onSeek={seekTo}
-            onStatusChange={setCollectionStatus}
           />
         </aside>
       </div>
@@ -488,12 +476,10 @@ function CollectionWorkspace({
   streamId,
   playbackOffsetMilliseconds,
   onSeek,
-  onStatusChange,
 }: {
   streamId: string;
   playbackOffsetMilliseconds: number;
   onSeek: (offsetMilliseconds: number) => void;
-  onStatusChange: (status: CollectionJob["status"] | null) => void;
 }) {
   const [collection, setCollection] = useState<CollectionJob | null>();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -507,7 +493,6 @@ function CollectionWorkspace({
       .then((job) => {
         if (!cancelled) {
           setCollection(job);
-          onStatusChange(job.status);
         }
       })
       .catch((error: unknown) => {
@@ -517,7 +502,6 @@ function CollectionWorkspace({
           error.problem.code === "COLLECTION_JOB_NOT_FOUND"
         ) {
           setCollection(null);
-          onStatusChange(null);
           return;
         }
         setRequestError(collectionErrorMessage(error));
@@ -525,7 +509,7 @@ function CollectionWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [onStatusChange, streamId]);
+  }, [streamId]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -538,7 +522,6 @@ function CollectionWorkspace({
           .then((job) => {
             if (cancelled) return;
             setCollection(job);
-            onStatusChange(job.status);
             setRequestError(null);
             if (job.status === "queued" || job.status === "running") {
               schedulePoll();
@@ -557,7 +540,7 @@ function CollectionWorkspace({
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [isActive, onStatusChange, streamId]);
+  }, [isActive, streamId]);
 
   async function submit(action: () => Promise<CollectionJob>) {
     setIsSubmitting(true);
@@ -565,7 +548,6 @@ function CollectionWorkspace({
     try {
       const job = await action();
       setCollection(job);
-      onStatusChange(job.status);
     } catch (submitError) {
       setRequestError(collectionErrorMessage(submitError));
     } finally {
@@ -582,13 +564,6 @@ function CollectionWorkspace({
         <div>
           <h2 id="collection-title">収集とチャット</h2>
         </div>
-        {collection ? (
-          <span
-            className={`collection-status collection-status-${collection.status}`}
-          >
-            {collectionStatusLabel(collection.status)}
-          </span>
-        ) : null}
       </div>
 
       {requestError ? (
@@ -639,14 +614,6 @@ function CollectionWorkspace({
               </div>
             </div>
           )}
-
-          {collection.skippedCount > 0 ? (
-            <p className="collection-notice" role="status">
-              {collection.skippedCount.toLocaleString("ja-JP")}
-              件のチャットを保存できませんでした。
-              保存済みのメッセージは引き続き検索できます。
-            </p>
-          ) : null}
 
           {isActive ? (
             <p className="collection-activity" role="status">
@@ -762,10 +729,10 @@ function ChatSearch({
         aria-label="収集済みチャットを検索"
         onSubmit={submitSearch}
       >
-        <label htmlFor="chat-search-query">収集済みチャットを検索</label>
         <div className="input-row">
           <input
             id="chat-search-query"
+            aria-label="収集済みチャットを検索"
             type="search"
             minLength={3}
             maxLength={100}
@@ -1030,17 +997,6 @@ function lifecycleLabel(status: StreamPreview["lifecycleStatus"]) {
     scheduled: "配信予定",
     unavailable: "利用不可",
     unknown: "状態不明",
-  };
-  return labels[status];
-}
-
-function collectionStatusLabel(status: CollectionJob["status"]) {
-  const labels: Record<CollectionJob["status"], string> = {
-    queued: "待機中",
-    running: "収集中",
-    succeeded: "完了",
-    no_data: "データなし",
-    failed: "失敗",
   };
   return labels[status];
 }

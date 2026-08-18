@@ -308,7 +308,6 @@ main {
 }
 
 .hero h1,
-.stream-detail h1,
 .not-found h1 {
   max-width: 13ch;
   margin: 0;
@@ -594,10 +593,6 @@ button:disabled {
   font-size: 0.9rem;
 }
 
-.stream-detail {
-  padding-top: 0.5rem;
-}
-
 .back-link {
   display: inline-block;
   margin-bottom: 2rem;
@@ -619,13 +614,6 @@ button:disabled {
   aspect-ratio: 16 / 9;
   border-radius: 1.5rem;
   box-shadow: var(--shadow);
-}
-
-.stream-detail h1 {
-  max-width: 12ch;
-  margin-top: 1rem;
-  color: var(--navy);
-  font-size: clamp(2.5rem, 6vw, 5rem);
 }
 
 .metadata-grid {
@@ -665,27 +653,6 @@ button:disabled {
   margin-top: clamp(3rem, 7vw, 6rem);
   border-top: 1px solid var(--line);
   padding-top: clamp(2rem, 5vw, 4rem);
-}
-
-.player-heading {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.player-heading h2 {
-  margin: 0;
-  color: var(--navy);
-  font-size: clamp(2rem, 5vw, 3.6rem);
-  letter-spacing: -0.045em;
-}
-
-.playback-time {
-  color: var(--teal-dark);
-  font-variant-numeric: tabular-nums;
-  font-weight: 800;
 }
 
 .player-frame {
@@ -745,38 +712,6 @@ button:disabled {
   color: var(--navy);
   font-size: clamp(2rem, 5vw, 3.6rem);
   letter-spacing: -0.045em;
-}
-
-.collection-status {
-  border-radius: 999px;
-  padding: 0.55rem 0.8rem;
-  background: #e6e3dc;
-  color: #4f5b61;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.collection-status-running,
-.collection-status-queued {
-  background: #fff0c2;
-  color: #765910;
-}
-
-.collection-status-succeeded {
-  background: #dff3ec;
-  color: #176058;
-}
-
-.collection-status-no_data {
-  background: #e9edf0;
-  color: #53626b;
-}
-
-.collection-status-failed {
-  background: #ffe2dc;
-  color: #a13622;
 }
 
 .collection-loading,
@@ -896,14 +831,6 @@ button:disabled {
 
 .chat-search-form {
   margin-top: 1.25rem;
-}
-
-.chat-search-form label {
-  display: block;
-  margin-bottom: 0.55rem;
-  color: var(--navy);
-  font-size: 0.85rem;
-  font-weight: 750;
 }
 
 .search-summary {
@@ -1114,11 +1041,6 @@ button:disabled {
 
   .collection-summary {
     grid-template-columns: 1fr;
-  }
-
-  .player-heading {
-    align-items: start;
-    flex-direction: column;
   }
 
   .chat-list li {
@@ -1520,17 +1442,6 @@ button:disabled {
   grid-column: 1 / -1;
 }
 
-.stream-detail {
-  display: grid;
-  height: 100%;
-  grid-template-columns: minmax(28rem, 1fr) minmax(20rem, 26rem);
-  padding: 0;
-}
-
-.right-panel-closed .stream-detail {
-  grid-template-columns: minmax(0, 1fr);
-}
-
 .stream-video-pane,
 .stream-chat-pane {
   min-width: 0;
@@ -1591,14 +1502,6 @@ button:disabled {
   padding-top: 0;
 }
 
-.stream-video-pane .player-heading {
-  margin-bottom: 0.75rem;
-}
-
-.stream-video-pane .player-heading h2 {
-  font-size: 1.15rem;
-}
-
 .stream-chat-pane .collection-workspace {
   margin: 0;
   border: 0;
@@ -1656,11 +1559,6 @@ button:disabled {
   .workspace-layout.left-panel-closed > .stream-workspace-host {
     grid-column: auto;
     padding: 0;
-  }
-
-  .stream-detail {
-    height: auto;
-    grid-template-columns: 1fr;
   }
 
   .stream-video-pane,

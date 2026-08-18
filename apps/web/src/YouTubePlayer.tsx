@@ -64,7 +64,6 @@ export function YouTubePlayer({
   const playerRef = useRef<YouTubePlayerInstance | undefined>(undefined);
   const pollRef = useRef<number | undefined>(undefined);
   const [status, setStatus] = useState<PlayerStatus>("loading");
-  const [currentOffsetMilliseconds, setCurrentOffsetMilliseconds] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +82,6 @@ export function YouTubePlayer({
         0,
         Math.round(player.getCurrentTime() * 1_000),
       );
-      setCurrentOffsetMilliseconds(offsetMilliseconds);
       onTimeChange(offsetMilliseconds);
     }
 
@@ -140,29 +138,19 @@ export function YouTubePlayer({
     if (!player || status !== "ready" || !seekRequest) return;
     const seconds = Math.max(0, seekRequest.offsetMilliseconds / 1_000);
     player.seekTo(seconds, true);
-    setCurrentOffsetMilliseconds(seekRequest.offsetMilliseconds);
     onTimeChange(seekRequest.offsetMilliseconds);
   }, [onTimeChange, seekRequest, status]);
 
   return (
-    <section className="player-panel" aria-labelledby="player-title">
-      <div className="player-heading">
-        <div>
-          <p className="eyebrow">YouTube 再生</p>
-          <h2 id="player-title">動画プレビュー</h2>
-        </div>
-        <span className="playback-time" aria-live="polite">
-          再生位置 {formatOffset(currentOffsetMilliseconds)}
-        </span>
-      </div>
+    <section className="player-panel" aria-label="動画プレイヤー">
       <div className="player-frame" ref={containerRef} />
-      <p className={`player-state player-state-${status}`} role="status">
-        {status === "loading"
-          ? "YouTube プレイヤーを読み込んでいます…"
-          : status === "ready"
-            ? "再生できます"
+      {status !== "ready" ? (
+        <p className={`player-state player-state-${status}`} role="status">
+          {status === "loading"
+            ? "プレイヤーを読み込んでいます…"
             : "この動画は埋め込みプレイヤーで再生できません。"}
-      </p>
+        </p>
+      ) : null}
       {status === "unavailable" ? (
         <a
           className="player-fallback"
@@ -207,14 +195,4 @@ function loadYouTubeIframeApi(): Promise<YouTubePlayerNamespace> {
     }
   });
   return iframeApiPromise;
-}
-
-function formatOffset(offsetMilliseconds: number) {
-  const totalSeconds = Math.max(0, Math.floor(offsetMilliseconds / 1_000));
-  const hours = Math.floor(totalSeconds / 3_600);
-  const minutes = Math.floor((totalSeconds % 3_600) / 60);
-  const seconds = totalSeconds % 60;
-  return hours > 0
-    ? `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
-    : `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
